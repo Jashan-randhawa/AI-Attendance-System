@@ -1,0 +1,29 @@
+# Smart Attendance System — Backend Dependencies
+
+# Web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# ── Face Recognition ──────────────────────────────────────────────
+insightface>=0.7.3
+onnxruntime>=1.16.0
+opencv-python-headless>=4.9.0   # for CLAHE preprocessing
+Pillow>=10.0.0
+numpy>=1.26.0
+
+# ── Azure Blob Storage (optional) ─────────────────────────────────
+azure-storage-blob>=12.19.0
+
+# Database (MongoDB async)
+motor==3.6.0
+pymongo==4.9.2
+
+# Env & config
+python-dotenv>=1.0.1
+
+# Data validation
+pydantic>=2.7.0
+pydantic[email]>=2.7.0
+
+# CORS / multipart
+python-multipart>=0.0.9
