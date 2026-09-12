@@ -210,7 +210,7 @@ const EnrollPerson = () => {
     <AppLayout>
       <div className="space-y-6 max-w-3xl">
         <div>
-          <h1 className="text-2xl font-bold">Enroll New Person</h1>
+          <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Enroll New Person</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Register a student or employee for face recognition
           </p>

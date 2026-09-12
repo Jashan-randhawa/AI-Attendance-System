@@ -74,15 +74,15 @@ const Sessions: React.FC = () => {
       <div className="space-y-8 max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Attendance Sessions</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Attendance Sessions</h1>
+            <p className="text-muted-foreground text-sm mt-1">
               Manage class, lecture, or shift sessions for facial recognition
             </p>
           </div>
 
           <Dialog open={openCreate} onOpenChange={setOpenCreate}>
             <DialogTrigger asChild>
-              <Button className="shadow-sm">
+              <Button className="shadow-sm gradient-primary text-white btn-tactile">
                 <Plus className="w-4 h-4 mr-2" />
                 New Session
               </Button>

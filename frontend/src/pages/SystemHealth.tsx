@@ -28,8 +28,8 @@ const SystemHealth: React.FC = () => {
       <div className="space-y-8 max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">System Health & Diagnostics</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">System Health & Diagnostics</h1>
+            <p className="text-muted-foreground text-sm mt-1">
               Live configuration status, database connectivity, and biometric vector integrity
             </p>
           </div>

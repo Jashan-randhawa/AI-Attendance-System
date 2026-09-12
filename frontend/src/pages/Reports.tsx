@@ -79,8 +79,8 @@ const Reports = () => {
       <div ref={reportsContainerRef} className="space-y-8 max-w-7xl mx-auto">
         <div className="gsap-reports-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Attendance Analytics & Reports</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Attendance Analytics & Reports</h1>
+            <p className="text-muted-foreground text-sm mt-1">
               Long-term trends, departmental analysis, and low-attendance alerts
             </p>
           </div>
@@ -91,7 +91,7 @@ const Reports = () => {
                 key={d}
                 size="sm"
                 variant={days === d ? "default" : "ghost"}
-                className={`h-7 px-3 text-xs ${days === d ? "gradient-primary text-primary-foreground font-semibold" : ""}`}
+                className={`h-7 px-3 text-xs ${days === d ? "gradient-primary text-white font-semibold" : ""}`}
                 onClick={() => setDays(d)}
               >
                 Last {d} Days
@@ -101,13 +101,13 @@ const Reports = () => {
         </div>
 
         {defaulters.length > 0 && (
-          <div className="gsap-scroll-section p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="gsap-scroll-section p-4 rounded-xl border border-destructive/30 bg-destructive/10 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-sm text-rose-900">
+              <p className="font-semibold text-sm text-destructive">
                 Low Attendance Alert: {defaulters.length} subject(s) below 75% threshold
               </p>
-              <p className="text-xs text-rose-700 mt-0.5">
+              <p className="text-xs text-destructive/80 mt-0.5">
                 Review subjects requiring attendance intervention or academic counseling.
               </p>
             </div>

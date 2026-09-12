@@ -86,23 +86,29 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div ref={containerRef} className="flex min-h-screen items-center justify-center bg-muted/20 p-4">
+    <div ref={containerRef} className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center text-center space-y-2">
-          <div className="gsap-login-logo w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-md">
-            <Camera className="w-6 h-6 text-primary-foreground" />
+        <div className="flex flex-col items-center text-center space-y-3">
+          <div className="gsap-login-logo brand-logo-mark w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg border border-emerald-500/30 overflow-hidden">
+            <Camera className="w-7 h-7 text-emerald-400 relative z-10 drop-shadow-[0_0_8px_rgba(45,212,191,0.5)]" />
           </div>
           <div className="gsap-login-title">
-            <h1 className="text-2xl font-bold tracking-tight">Smart Attend</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center justify-center gap-1.5">
+              <span>Smart</span>
+              <span className="brand-logo-text-grad">Attend</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-700/40 uppercase tracking-wider">
+                AI
+              </span>
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Sign in to access live attendance and administrative tools
             </p>
           </div>
         </div>
 
-        <Card className="gsap-login-card border-border/60 shadow-lg backdrop-blur-sm bg-card/95">
+        <Card className="gsap-login-card border-border/80 shadow-md backdrop-blur-sm bg-card/95 rounded-2xl">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl">Account Sign In</CardTitle>
+            <CardTitle className="text-xl font-semibold">Account Sign In</CardTitle>
             <CardDescription>
               Enter your credentials to continue
             </CardDescription>
@@ -117,7 +123,7 @@ const Login: React.FC = () => {
               )}
 
               <div className="gsap-login-field space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sans">
                   Username
                 </label>
                 <div className="relative">
@@ -128,14 +134,14 @@ const Login: React.FC = () => {
                     placeholder="operator or admin"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 bg-background/50 border-border/80 focus-visible:ring-emerald-500"
                     required
                   />
                 </div>
               </div>
 
               <div className="gsap-login-field space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-sans">
                   Password
                 </label>
                 <div className="relative">
@@ -145,7 +151,7 @@ const Login: React.FC = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 bg-background/50 border-border/80 focus-visible:ring-emerald-500"
                     required
                   />
                 </div>
@@ -154,7 +160,7 @@ const Login: React.FC = () => {
               <div className="gsap-login-field">
                 <Button
                   type="submit"
-                  className="w-full mt-2"
+                  className="w-full mt-2 gradient-primary text-white shadow-sm btn-tactile font-medium"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (

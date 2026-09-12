@@ -107,7 +107,7 @@ const PersonDetails: React.FC = () => {
               </div>
 
               <div>
-                <h2 className="text-xl font-bold">{person.name}</h2>
+                <h2 className="font-display text-2xl font-bold text-foreground">{person.name}</h2>
                 <p className="text-xs text-muted-foreground font-mono mt-0.5">ID: {person.id}</p>
               </div>
 

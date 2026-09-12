@@ -75,13 +75,13 @@ const People: React.FC = () => {
       <div className="space-y-8 max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Enrolled People Directory</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Enrolled People Directory</h1>
+            <p className="text-muted-foreground text-sm mt-1">
               Manage registered students, staff, and their biometric face encodings
             </p>
           </div>
 
-          <Button asChild className="shadow-sm">
+          <Button asChild className="shadow-sm gradient-primary text-white btn-tactile">
             <Link to="/enroll">
               <UserPlus className="w-4 h-4 mr-2" />
               Enroll Person

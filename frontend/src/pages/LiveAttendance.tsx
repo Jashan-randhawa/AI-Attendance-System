@@ -310,8 +310,8 @@ const LiveAttendance: React.FC = () => {
       <div ref={liveRef} className="space-y-6 max-w-7xl mx-auto">
         <div className="gsap-live-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Live Attendance Scanner</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Live Attendance Scanner</h1>
+            <p className="text-muted-foreground text-sm mt-1">
               Face detection, identification, and automated attendance marking
             </p>
           </div>

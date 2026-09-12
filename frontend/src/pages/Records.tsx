@@ -145,7 +145,7 @@ const Records = () => {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold">Attendance Records</h1>
+            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Attendance Records</h1>
             <p className="text-muted-foreground text-sm mt-1">
               {loading ? "Loading…" : `${filtered.length} record${filtered.length !== 1 ? "s" : ""} found`}
             </p>

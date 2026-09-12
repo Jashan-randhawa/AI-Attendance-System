@@ -65,6 +65,11 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      fontFamily: {
+        sans: ['"Inter"', "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "Roboto", "sans-serif"],
+        serif: ['"Playfair Display"', "ui-serif", "Georgia", "Cambria", "'Times New Roman'", "serif"],
+        display: ['"Playfair Display"', "ui-serif", "Georgia", "Cambria", "'Times New Roman'", "serif"],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

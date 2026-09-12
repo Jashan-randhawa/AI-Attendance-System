@@ -16,9 +16,9 @@ import { useGSAP } from "@gsap/react";
 gsap.registerPlugin(useGSAP);
 
 const statusColor: Record<string, string> = {
-  present: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  late: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  absent: "bg-rose-500/15 text-rose-600 border-rose-500/30",
+  present: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  late: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  absent: "bg-red-500/15 text-red-700 border-red-500/30",
 };
 
 const Dashboard: React.FC = () => {
@@ -74,17 +74,18 @@ const Dashboard: React.FC = () => {
       <div ref={dashboardRef} className="space-y-8 max-w-7xl mx-auto">
         <div className="gsap-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Dashboard Overview</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+            <span className="text-[11px] font-semibold text-emerald-600 tracking-wider uppercase font-sans">Biometric Operations</span>
+            <h1 className="font-display text-3xl sm:text-4xl text-foreground tracking-tight mt-0.5">Dashboard Overview</h1>
+            <p className="text-muted-foreground text-sm font-sans mt-1">
               Live biometric surveillance & attendance operational status
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" className="btn-tactile bg-white border-border/80 text-foreground shadow-xs" asChild>
               <Link to="/reports">View Analytics</Link>
             </Button>
-            <Button size="sm" className="gradient-primary text-primary-foreground shadow-sm" asChild>
+            <Button size="sm" className="gradient-primary text-white shadow-sm btn-tactile" asChild>
               <Link to="/sessions">
                 <Play className="w-3.5 h-3.5 mr-1.5" /> Start Session
               </Link>
@@ -93,25 +94,26 @@ const Dashboard: React.FC = () => {
         </div>
 
         {currentActiveSession && (
-          <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-enter-subtle">
-            <div className="flex items-center gap-3">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+          <div className="atmospheric-hero p-5 rounded-2xl border border-emerald-500/30 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-enter-subtle shadow-md">
+            <div className="flex items-center gap-3 relative z-10">
+              <span className="relative flex h-3 w-3 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400"></span>
               </span>
               <div>
-                <p className="font-semibold text-sm">
-                  Active Session: <span className="text-primary">{currentActiveSession.session_name}</span>
+                <p className="font-semibold text-sm flex items-center gap-2">
+                  <span>Active Session:</span>
+                  <span className="text-amber-300 font-bold">{currentActiveSession.session_name}</span>
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-300 mt-0.5">
                   {currentActiveSession.expected_department || "All Departments"} • Started{" "}
                   {new Date(currentActiveSession.start_time).toLocaleTimeString()}
                 </p>
               </div>
             </div>
 
-            <Button size="sm" className="gradient-primary text-primary-foreground" asChild>
-              <Link to={`/live?session=${currentActiveSession.id}`}>
+            <Button size="sm" className="gradient-primary text-white relative z-10 shadow-sm btn-tactile shrink-0" asChild>
+              <Link to={`/live-attendance?session=${currentActiveSession.id}`}>
                 <Camera className="w-3.5 h-3.5 mr-1.5" /> Open Live Camera
               </Link>
             </Button>
