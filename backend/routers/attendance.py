@@ -18,7 +18,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from core.database import get_db, person_already_marked, get_person_by_azure_id
 from core.schemas import AttendanceOut, MarkAttendanceResponse, IdentifyResult
 from core import azure_face
-from core.auth import require_operator, require_admin
+from core.auth import require_operator, require_admin, get_user_id_from_request
 from core.rate_limit import limiter
 from core.validation import read_and_validate_image
 
@@ -85,17 +85,21 @@ async def mark_attendance(
             logger.warning("Azure person %s not in DB — skipping.", r["azure_person_id"])
             continue
 
-        already = await person_already_marked(db, person["_id"], session_id)
+        already = await person_already_marked(db, person["_id"], session_oid)
 
         if not already:
             try:
-                await db.attendance.insert_one({
+                user_id = get_user_id_from_request(request)
+                att_doc = {
                     "person_id":  person["_id"],
-                    "session_id": session_id,
+                    "session_id": session_oid,
                     "marked_at":  datetime.now(UTC),
                     "confidence": r["confidence"],
                     "status":     "present",
-                })
+                }
+                if user_id:
+                    att_doc["marked_by"] = user_id
+                await db.attendance.insert_one(att_doc)
                 new_records += 1
             except DuplicateKeyError:
                 logger.info(
@@ -129,7 +133,10 @@ async def list_attendance(
 ):
     match: dict = {}
     if session_id:
-        match["session_id"] = session_id
+        try:
+            match["session_id"] = ObjectId(session_id)
+        except (InvalidId, TypeError):
+            raise HTTPException(400, f"Invalid session_id format: '{session_id}'.")
     if person_id:
         match["person_id"] = person_id
     if date_filter:
@@ -145,16 +152,8 @@ async def list_attendance(
         {"$limit": limit},
         # persons._id is a string UUID — direct match works
         {"$lookup": {"from": "persons", "localField": "person_id", "foreignField": "_id", "as": "person"}},
-        # sessions._id is an ObjectId but attendance.session_id is stored as a string,
-        # so we must convert _id to string before comparing.
-        {"$lookup": {
-            "from": "sessions",
-            "let": {"sid": "$session_id"},
-            "pipeline": [
-                {"$match": {"$expr": {"$eq": [{"$toString": "$_id"}, "$$sid"]}}}
-            ],
-            "as": "session",
-        }},
+        # sessions._id is an ObjectId and attendance.session_id is stored as ObjectId
+        {"$lookup": {"from": "sessions", "localField": "session_id", "foreignField": "_id", "as": "session"}},
         {"$unwind": "$person"},
         {"$unwind": "$session"},
     ]
@@ -171,6 +170,7 @@ async def list_attendance(
             marked_at=doc["marked_at"],
             confidence=doc.get("confidence"),
             status=doc["status"],
+            marked_by=doc.get("marked_by"),
         ))
     return rows
 

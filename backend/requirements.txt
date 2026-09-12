@@ -30,3 +30,4 @@ python-multipart>=0.0.9
 
 # ── Security (Phase 0 hardening) ──────────────────────────────────
 slowapi>=0.1.9        # per-IP rate limiting on expensive/abusable endpoints
+pyjwt>=2.8.0          # signed JWT tokens for per-user identity (Step 11)

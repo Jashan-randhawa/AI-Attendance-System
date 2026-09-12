@@ -24,6 +24,7 @@ class PersonOut(BaseModel):
     photo_url:   Optional[str]
     enrolled_at: datetime
     is_active:   bool
+    enrolled_by: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -56,6 +57,7 @@ class AttendanceOut(BaseModel):
     marked_at:    datetime
     confidence:   Optional[float]
     status:       str
+    marked_by:    Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -108,3 +110,33 @@ class PersonAttendanceStat(BaseModel):
     present_count:    int
     attendance_rate:  float
     is_defaulter:     bool              # True if rate < 75%
+
+
+# ── Authentication & Users (Step 11) ──────────────────────────────────────────
+class UserLogin(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=6, max_length=128)
+
+
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=6, max_length=128)
+    role:     str = Field("operator", pattern="^(operator|admin)$")
+
+
+class UserOut(BaseModel):
+    id:         str
+    username:   str
+    role:       str
+    is_active:  bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type:   str = "bearer"
+    expires_in:   int
+    role:         str
+    username:     str

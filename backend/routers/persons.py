@@ -14,7 +14,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from core.database import get_db
 from core.schemas import PersonOut
 from core import azure_face
-from core.auth import require_admin
+from core.auth import require_admin, get_user_id_from_request
 from core.rate_limit import limiter
 from core.validation import read_and_validate_image
 
@@ -35,12 +35,9 @@ async def debug_encodings(db: AsyncIOMotorDatabase = Depends(get_db)):
     """
     import asyncio, logging
     from core import azure_face as af
-    from core.logging_context import run_in_executor_ctx
-
-    loop = asyncio.get_event_loop()
-    enrolled_ids = await run_in_executor_ctx(loop, lambda: set(
-        doc["_id"] for doc in af._get_col().find({}, {"_id": 1})
-    ))
+    enrolled_ids = set()
+    async for doc in db.face_encodings.find({}, {"_id": 1}):
+        enrolled_ids.add(doc["_id"])
 
     missing = []
     async for person in db.persons.find({"is_active": True}):
@@ -239,6 +236,7 @@ async def enroll_person(
     except Exception as e:
         logger.warning("Blob upload failed (non-critical): %s", e)
 
+    enrolled_by = get_user_id_from_request(request)
     person_doc = {
         "_id":         azure_id,
         "name":        name.strip(),
@@ -247,6 +245,7 @@ async def enroll_person(
         "photo_url":   photo_url or None,
         "enrolled_at": datetime.now(UTC),
         "is_active":   True,
+        "enrolled_by": enrolled_by,
     }
     try:
         await db.persons.insert_one(person_doc)

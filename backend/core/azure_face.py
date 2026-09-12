@@ -18,13 +18,14 @@ import io
 import time
 import uuid
 import asyncio
+import inspect
 import logging
 
 import cv2
 import numpy as np
 from PIL import Image
-import pymongo
 
+from core.database import get_database
 from core.logging_context import run_in_executor_ctx
 
 logger = logging.getLogger(__name__)
@@ -49,11 +50,13 @@ def _log_timing(operation: str, started_at: float, **fields) -> None:
     extra = " ".join(f"{k}={v}" for k, v in fields.items())
     metrics_logger.info("op=%s duration_ms=%.1f %s", operation, duration_ms, extra)
 
-# ── InsightFace model (lazy singleton) ────────────────────────────────────────
+
+# ── Global face analysis model singleton ──────────────────────────────────────
 
 _app = None
 
 def _get_insight_app():
+    """Lazily load the InsightFace model once per process."""
     global _app
     if _app is None:
         try:
@@ -75,35 +78,9 @@ def _get_insight_app():
     return _app
 
 
-# ── Synchronous MongoDB client (used inside thread executors) ─────────────────
+# ── Motor-backed Persistence helpers (Single MongoDB Client) ──────────────────
 
-_sync_client = None
-_sync_col    = None   # face_encodings collection
-
-def _get_col():
-    """Return a pymongo Collection for face_encodings, creating it if needed."""
-    global _sync_client, _sync_col
-    if _sync_col is None:
-        mongo_url = os.environ.get("MONGODB_URL", "mongodb://localhost:27017")
-        db_name   = os.environ.get("MONGODB_DB_NAME", "attendance_db")
-        _sync_client = pymongo.MongoClient(
-            mongo_url,
-            serverSelectionTimeoutMS=30_000,
-            connectTimeoutMS=30_000,
-            socketTimeoutMS=30_000,
-            tls=True,
-            tlsAllowInvalidCertificates=False,
-        )
-        db = _sync_client[db_name]
-        db["face_encodings"].create_index("name")
-        _sync_col = db["face_encodings"]
-        logger.info("Synchronous MongoDB client ready for face_encodings.")
-    return _sync_col
-
-
-# ── Persistence helpers (MongoDB-backed) ──────────────────────────────────────
-
-def _load_all() -> dict:
+async def _load_all() -> dict:
     """
     Returns {person_id: {"name": str, "embeddings": [np.ndarray, ...]}}
 
@@ -114,19 +91,18 @@ def _load_all() -> dict:
     scale (tens to low hundreds of enrolled people); will not scale to
     thousands without added latency and MongoDB load.
 
-    Deliberately NOT fixed in this phase — the plan calls for deferring this
-    until it's an observed bottleneck rather than optimizing pre-emptively.
-    When `op=identify` / `op=duplicate_check` timing logs (see `_log_timing`
-    above) start showing meaningful latency growth as enrollment count rises,
-    the two options to reach for are:
-      1. Cache the embedding matrix in-process, invalidated on enroll/delete
-         (cheapest fix, keeps brute-force cosine similarity).
-      2. Move to a vector index (MongoDB Atlas Vector Search, or FAISS)
-         instead of brute-force comparison in Python.
+    SCALING TRIGGER THRESHOLDS (Step 12):
+    Revisit and implement caching / vector search when:
+      1. Enrolled person count exceeds 500 active persons.
+      2. Or p95 identify latency exceeds 2.0 seconds based on timing logs.
+    Escalation Path:
+      Tier 1: Cache the embedding matrix in-process as a NumPy array,
+              invalidated on enroll/delete.
+      Tier 2: Migrate to a vector index (MongoDB Atlas Vector Search or FAISS).
     """
-    col   = _get_col()
+    db = get_database()
     store = {}
-    for doc in col.find():
+    async for doc in db.face_encodings.find():
         pid = doc["_id"]
         store[pid] = {
             "name":       doc["name"],
@@ -135,9 +111,9 @@ def _load_all() -> dict:
     return store
 
 
-def _upsert_person(person_id: str, name: str, embeddings: list) -> None:
-    col = _get_col()
-    col.update_one(
+async def _upsert_person(person_id: str, name: str, embeddings: list) -> None:
+    db = get_database()
+    await db.face_encodings.update_one(
         {"_id": person_id},
         {"$set": {
             "name":       name,
@@ -147,8 +123,9 @@ def _upsert_person(person_id: str, name: str, embeddings: list) -> None:
     )
 
 
-def _delete_person_doc(person_id: str) -> None:
-    _get_col().delete_one({"_id": person_id})
+async def _delete_person_doc(person_id: str) -> None:
+    db = get_database()
+    await db.face_encodings.delete_one({"_id": person_id})
 
 
 # ── Image pre-processing ──────────────────────────────────────────────────────
@@ -227,7 +204,6 @@ def _check_face_quality(face, image_w: int, image_h: int) -> tuple:
 async def ensure_person_group() -> None:
     loop = asyncio.get_event_loop()
     await run_in_executor_ctx(loop, _get_insight_app)
-    await run_in_executor_ctx(loop, _get_col)          # warm up MongoDB
     logger.info("InsightFace backend ready.")
 
 
@@ -285,35 +261,37 @@ async def enroll_person(name: str, image_bytes_list: list) -> str:
                 " | ".join(quality_errors),
             )
 
-        # Persist to MongoDB — survives restarts
-        _upsert_person(person_id, name, new_embeddings)
-        logger.info("Enrolled '%s' with %d embedding(s) in MongoDB. id=%s",
-                    name, len(new_embeddings), person_id)
-        _log_timing("enroll", _t0, photos=len(image_bytes_list),
-                    faces_detected=faces_detected, embeddings=len(new_embeddings), result="ok")
-        return person_id
+        return person_id, new_embeddings, _t0, faces_detected
 
-    return await run_in_executor_ctx(loop, _encode_all)
+    person_id, new_embeddings, _t0, faces_detected = await run_in_executor_ctx(loop, _encode_all)
+
+    # Persist to MongoDB asynchronously using Motor — survives restarts
+    await _upsert_person(person_id, name, new_embeddings)
+    logger.info("Enrolled '%s' with %d embedding(s) in MongoDB. id=%s",
+                name, len(new_embeddings), person_id)
+    _log_timing("enroll", _t0, photos=len(image_bytes_list),
+                faces_detected=faces_detected, embeddings=len(new_embeddings), result="ok")
+    return person_id
 
 
 async def delete_person(azure_person_id: str) -> None:
-    loop = asyncio.get_event_loop()
-    await run_in_executor_ctx(loop, _delete_person_doc, azure_person_id)
+    await _delete_person_doc(azure_person_id)
 
 
 async def identify_faces(image_bytes: bytes, confidence_threshold: float = None) -> list:
     cfg  = _cfg()
     loop = asyncio.get_event_loop()
+    _t0  = time.perf_counter()
+
+    raw_store = _load_all()
+    store = await raw_store if inspect.isawaitable(raw_store) else raw_store
+    if not store:
+        logger.info("No enrolled persons in MongoDB face_encodings.")
+        _log_timing("identify", _t0, faces_detected=0, matches=0, result="empty_store")
+        return []
 
     def _identify():
-        _t0   = time.perf_counter()
         fa    = _get_insight_app()
-        store = _load_all()
-        if not store:
-            logger.info("No enrolled persons in MongoDB face_encodings.")
-            _log_timing("identify", _t0, faces_detected=0, matches=0, result="empty_store")
-            return []
-
         bgr   = _bytes_to_bgr(image_bytes)
         faces = fa.get(bgr)
         if not faces:
@@ -416,14 +394,16 @@ async def check_duplicate_face(
     cfg       = _cfg()
     threshold = similarity_threshold if similarity_threshold is not None else cfg["dup_threshold"]
     loop      = asyncio.get_event_loop()
+    _t0       = time.perf_counter()
+
+    raw_store = _load_all()
+    store = await raw_store if inspect.isawaitable(raw_store) else raw_store
+    if not store:
+        _log_timing("duplicate_check", _t0, photos=len(image_bytes_list), result="empty_store")
+        return None
 
     def _check():
-        _t0   = time.perf_counter()
         fa    = _get_insight_app()
-        store = _load_all()
-        if not store:
-            _log_timing("duplicate_check", _t0, photos=len(image_bytes_list), result="empty_store")
-            return None
 
         all_pids, all_names, all_embs = [], [], []
         for pid, data in store.items():

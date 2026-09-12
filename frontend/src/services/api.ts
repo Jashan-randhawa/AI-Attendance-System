@@ -6,9 +6,18 @@
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
-// Sent as X-API-Key on every request (read AND write). Every route on the
-// backend — including the GET/read endpoints — now requires an operator or
-// admin key (Phase 4 remediation: read endpoints were previously wide open).
+// In-memory token storage (per security guidance, not stored in localStorage)
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+
+export function getAuthToken(): string | null {
+  return authToken;
+}
+
+// Fallback legacy API key
 const API_KEY = import.meta.env.VITE_API_KEY ?? "";
 
 // ── Generic fetch wrapper ─────────────────────────────────────────────────────
@@ -16,13 +25,20 @@ async function request<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const authHeaders: Record<string, string> = {};
+  if (authToken) {
+    authHeaders["Authorization"] = `Bearer ${authToken}`;
+  } else if (API_KEY) {
+    authHeaders["X-API-Key"] = API_KEY;
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       ...("body" in options && !(options.body instanceof FormData)
         ? { "Content-Type": "application/json" }
         : {}),
-      ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
+      ...authHeaders,
       ...options.headers,
     },
   });
@@ -215,4 +231,36 @@ export const reportsApi = {
     request<PersonAttendanceStat[]>(`/api/reports/persons?days=${days}`),
   heatmap: (days = 14) =>
     request<HeatmapData>(`/api/reports/heatmap?days=${days}`),
+};
+
+// ── Authentication & Identity (Step 11) ──────────────────────────────────────
+export interface UserProfile {
+  id: string;
+  username: string;
+  role: "operator" | "admin";
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  role: string;
+  username: string;
+}
+
+export const authApi = {
+  login: async (credentials: { username: string; password: string }): Promise<LoginResponse> => {
+    const data = await request<LoginResponse>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+    setAuthToken(data.access_token);
+    return data;
+  },
+  logout: () => {
+    setAuthToken(null);
+  },
+  me: () => request<UserProfile>("/api/auth/me"),
 };

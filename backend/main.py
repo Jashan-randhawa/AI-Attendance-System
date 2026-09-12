@@ -43,7 +43,7 @@ from slowapi.errors import RateLimitExceeded
 from core.database import init_db
 from core.rate_limit import limiter
 from core.logging_context import RequestIDMiddleware, install_request_id_filter
-from routers import persons, sessions, attendance, reports, dashboard
+from routers import persons, sessions, attendance, reports, dashboard, auth
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -51,12 +51,11 @@ install_request_id_filter()
 
 
 def _preload_insightface():
-    """Pre-warm InsightFace model and MongoDB face store at startup."""
+    """Pre-warm InsightFace model at startup."""
     try:
-        from core.azure_face import _get_insight_app, _get_col
+        from core.azure_face import _get_insight_app
         _get_insight_app()
-        _get_col()   # warm up the synchronous MongoDB client for face_encodings
-        logger.info("✅ InsightFace model and MongoDB face store ready.")
+        logger.info("✅ InsightFace model ready.")
     except Exception as e:
         logger.warning("Pre-load warning (non-fatal): %s", e)
 
@@ -139,6 +138,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router,        prefix="/api/auth",       tags=["Authentication"])
 app.include_router(dashboard.router,  prefix="/api/dashboard",  tags=["Dashboard"])
 app.include_router(persons.router,    prefix="/api/persons",    tags=["Persons"])
 app.include_router(sessions.router,   prefix="/api/sessions",   tags=["Sessions"])

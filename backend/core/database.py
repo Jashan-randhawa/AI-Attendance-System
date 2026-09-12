@@ -7,8 +7,9 @@ Collections: persons, sessions, attendance
 import os
 import logging
 from datetime import datetime, date, timedelta
-from typing import Optional
+from typing import Optional, Union
 
+from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo import ASCENDING, DESCENDING, TEXT
 from dotenv import load_dotenv
@@ -83,6 +84,12 @@ async def init_db() -> None:
     await db.attendance.create_index([("marked_at", DESCENDING)])
     await db.attendance.create_index([("status", ASCENDING)])
 
+    # ── face_encodings indexes ───────────────────────────────────────────────
+    await db.face_encodings.create_index([("name", ASCENDING)])
+
+    # ── users indexes (per-user identity) ────────────────────────────────────
+    await db.users.create_index([("username", ASCENDING)], unique=True)
+
     logger.info("MongoDB indexes created on '%s'", DB_NAME)
 
 
@@ -90,8 +97,15 @@ async def get_person_by_azure_id(db: AsyncIOMotorDatabase, azure_id: str) -> Opt
     return await db.persons.find_one({"_id": azure_id, "is_active": True})
 
 
-async def person_already_marked(db: AsyncIOMotorDatabase, person_id: str, session_id: str) -> bool:
-    doc = await db.attendance.find_one({"person_id": person_id, "session_id": session_id})
+async def person_already_marked(db: AsyncIOMotorDatabase, person_id: str, session_id: Union[str, ObjectId]) -> bool:
+    if isinstance(session_id, str) and ObjectId.is_valid(session_id):
+        sess_oid = ObjectId(session_id)
+        doc = await db.attendance.find_one({
+            "person_id": person_id,
+            "session_id": {"$in": [sess_oid, session_id]},
+        })
+    else:
+        doc = await db.attendance.find_one({"person_id": person_id, "session_id": session_id})
     return doc is not None
 
 
@@ -121,13 +135,11 @@ async def get_recent_activity(db: AsyncIOMotorDatabase, limit: int = 8) -> list:
         {"$sort": {"marked_at": -1}},
         {"$limit": limit},
         {"$lookup": {"from": "persons", "localField": "person_id", "foreignField": "_id", "as": "person"}},
-        # sessions._id is ObjectId but attendance.session_id is stored as string — use $toString
+        # sessions._id is ObjectId and attendance.session_id is now ObjectId
         {"$lookup": {
             "from": "sessions",
-            "let": {"sid": "$session_id"},
-            "pipeline": [
-                {"$match": {"$expr": {"$eq": [{"$toString": "$_id"}, "$$sid"]}}}
-            ],
+            "localField": "session_id",
+            "foreignField": "_id",
             "as": "session",
         }},
         {"$unwind": "$person"},

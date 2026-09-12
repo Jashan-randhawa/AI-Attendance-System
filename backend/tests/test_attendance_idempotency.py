@@ -39,15 +39,24 @@ class FakeAttendanceCollection:
 
     async def find_one(self, query):
         for doc in self._docs:
-            if all(doc.get(k) == v for k, v in query.items()):
+            match = True
+            for k, v in query.items():
+                if isinstance(v, dict) and "$in" in v:
+                    if doc.get(k) not in v["$in"]:
+                        match = False
+                        break
+                elif doc.get(k) != v:
+                    match = False
+                    break
+            if match:
                 return doc
         return None
 
     async def insert_one(self, doc):
         if self.raise_on_insert is not None:
             raise self.raise_on_insert
-        key = (doc["person_id"], doc["session_id"])
-        if any((d["person_id"], d["session_id"]) == key for d in self._docs):
+        key = (doc["person_id"], str(doc["session_id"]))
+        if any((d["person_id"], str(d["session_id"])) == key for d in self._docs):
             # Real pymongo raises DuplicateKeyError on the unique compound
             # index — mark_attendance now narrows its except clause to this
             # specific type (Phase 4 finding #4), so the fake must match.
