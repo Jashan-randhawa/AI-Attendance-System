@@ -1,116 +1,192 @@
-import { useEffect, useState } from "react";
+import React from "react";
+import { Link } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import MetricCard from "@/components/MetricCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, CalendarCheck, UserCheck, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, CalendarCheck, UserCheck, TrendingUp, Camera, Play, ArrowRight, Clock } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import {
-  dashboardApi, reportsApi,
-  type DashboardMetrics, type ActivityItem, type DailyAttendanceStat,
-} from "@/services/api";
-import { toast } from "sonner";
+import { useDashboardMetrics, useDashboardActivity, useSessions, useDailyReports } from "@/hooks/useAttendanceQueries";
 
 const statusColor: Record<string, string> = {
-  present: "bg-success text-success-foreground",
-  late: "bg-warning text-warning-foreground",
-  absent: "bg-destructive text-destructive-foreground",
+  present: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  late: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  absent: "bg-rose-500/15 text-rose-600 border-rose-500/30",
 };
 
-const Dashboard = () => {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [weeklyData, setWeeklyData] = useState<{ day: string; present: number; sessions: number }[]>([]);
-  const [loading, setLoading] = useState(true);
+const Dashboard: React.FC = () => {
+  const { data: metrics, isLoading: loadingMetrics } = useDashboardMetrics();
+  const { data: activity, isLoading: loadingActivity } = useDashboardActivity();
+  const { data: activeSessions } = useSessions(true);
+  const { data: dailyReports } = useDailyReports(7);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [m, act, daily] = await Promise.all([
-          dashboardApi.getMetrics(),
-          dashboardApi.getActivity(),
-          reportsApi.daily(7),
-        ]);
-        setMetrics(m);
-        setActivity(act);
-        setWeeklyData(
-          daily.map((d: DailyAttendanceStat) => ({
-            day: new Date(d.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" }),
-            present:  d.total_present,
-            sessions: d.total_sessions,
-          }))
-        );
-      } catch {
-        toast.error("Failed to load dashboard. Is the backend running?");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+  const weeklyData = (dailyReports || []).map((d) => ({
+    day: new Date(d.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" }),
+    present: d.total_present,
+    sessions: d.total_sessions,
+  }));
+
+  const currentActiveSession = activeSessions && activeSessions.length > 0 ? activeSessions[0] : null;
 
   return (
     <AppLayout>
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1">Overview of today's attendance</p>
+      <div className="space-y-8 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard Overview</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">
+              Live biometric surveillance & attendance operational status
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/reports">View Analytics</Link>
+            </Button>
+            <Button size="sm" className="gradient-primary text-primary-foreground shadow-sm" asChild>
+              <Link to="/sessions">
+                <Play className="w-3.5 h-3.5 mr-1.5" /> Start Session
+              </Link>
+            </Button>
+          </div>
         </div>
 
-        {loading ? (
-          <p className="text-muted-foreground text-sm animate-pulse">Loading metrics…</p>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <MetricCard title="Total Enrolled" value={metrics?.total_enrolled ?? 0} icon={Users} />
-              <MetricCard title="Sessions Today" value={metrics?.sessions_today ?? 0} icon={CalendarCheck} />
-              <MetricCard title="Present Today" value={metrics?.present_today ?? 0} icon={UserCheck}
-                trend={metrics ? `${metrics.attendance_rate.toFixed(1)}%` : undefined}
-                trendUp={(metrics?.attendance_rate ?? 0) >= 75} />
-              <MetricCard title="Attendance Rate" value={`${metrics?.attendance_rate?.toFixed(1) ?? 0}%`} icon={TrendingUp} />
+        {currentActiveSession && (
+          <div className="p-4 rounded-xl border border-primary/30 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+              </span>
+              <div>
+                <p className="font-semibold text-sm">
+                  Active Session: <span className="text-primary">{currentActiveSession.session_name}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {currentActiveSession.expected_department || "All Departments"} • Started{" "}
+                  {new Date(currentActiveSession.start_time).toLocaleTimeString()}
+                </p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2 border-none shadow-sm">
-                <CardHeader><CardTitle className="text-base">Weekly Attendance</CardTitle></CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={weeklyData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-                      <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip formatter={(value, name) => [value, name === "present" ? "Attendees" : "Sessions"]} />
-                      <Bar dataKey="present"  name="present"  fill="hsl(187 94% 43%)" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="sessions" name="sessions" fill="hsl(214 32% 70%)" radius={[4, 4, 0, 0]} />
+            <Button size="sm" className="gradient-primary text-primary-foreground" asChild>
+              <Link to={`/live?session=${currentActiveSession.id}`}>
+                <Camera className="w-3.5 h-3.5 mr-1.5" /> Open Live Camera
+              </Link>
+            </Button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            title="Total Registered Subjects"
+            value={loadingMetrics ? "..." : (metrics?.total_persons ?? 0)}
+            change={`${metrics?.total_departments ?? 0} active departments`}
+            trend="neutral"
+            icon={Users}
+          />
+          <MetricCard
+            title="Today's Total Scans"
+            value={loadingMetrics ? "..." : (metrics?.today_attendance ?? 0)}
+            change="Real-time check-ins"
+            trend="up"
+            icon={CalendarCheck}
+          />
+          <MetricCard
+            title="Active Sessions"
+            value={loadingMetrics ? "..." : (metrics?.active_sessions ?? 0)}
+            change={`${metrics?.total_sessions ?? 0} total lifetime`}
+            trend="neutral"
+            icon={UserCheck}
+          />
+          <MetricCard
+            title="30-Day Attendance Rate"
+            value={loadingMetrics ? "..." : `${Math.round(metrics?.attendance_rate ?? 0)}%`}
+            change="Organization average"
+            trend="up"
+            icon={TrendingUp}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2 border-border/60 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle className="text-base font-semibold">Weekly Attendance Trend</CardTitle>
+                <CardDescription>Daily present count over the past 7 days</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="h-64">
+                {weeklyData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={weeklyData} barGap={6}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          borderColor: "hsl(var(--border))",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                        }}
+                      />
+                      <Bar dataKey="present" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={32} />
                     </BarChart>
                   </ResponsiveContainer>
-                </CardContent>
-              </Card>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    No attendance records for the last 7 days
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-              <Card className="border-none shadow-sm">
-                <CardHeader><CardTitle className="text-base">Recent Activity</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  {activity.slice(0, 8).map((r) => (
-                    <div key={r.id} className="flex items-center justify-between">
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle className="text-base font-semibold">Recent Activity</CardTitle>
+                <CardDescription>Latest face scans recorded</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" asChild>
+                <Link to="/records">
+                  View All <ArrowRight className="w-3 h-3" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {loadingActivity ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">Loading activity...</p>
+              ) : activity?.recent_scans && activity.recent_scans.length > 0 ? (
+                <div className="space-y-3 mt-1">
+                  {activity.recent_scans.slice(0, 5).map((scan) => (
+                    <div key={scan.id} className="flex items-center justify-between text-xs py-1 border-b border-border/40 last:border-0">
                       <div>
-                        <p className="text-sm font-medium">{r.person_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(r.marked_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        <p className="font-semibold">{scan.person_name}</p>
+                        <p className="text-muted-foreground text-[10px] flex items-center gap-1 mt-0.5">
+                          <Clock className="w-3 h-3" />
+                          {new Date(scan.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
-                      <Badge className={statusColor[r.status] ?? ""}>{r.status}</Badge>
+                      <Badge variant="outline" className={`text-[10px] uppercase font-bold ${statusColor[scan.status] || ""}`}>
+                        {scan.status}
+                      </Badge>
                     </div>
                   ))}
-                  {activity.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">No activity yet today</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-xs text-muted-foreground">
+                  No activity scans recorded yet today.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AppLayout>
   );

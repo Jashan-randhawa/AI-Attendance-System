@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import {
   RefreshCw, Users, CalendarDays, ClipboardCheck, Filter,
 } from "lucide-react";
 import { attendanceApi, sessionsApi, type AttendanceRecord, type Session } from "@/services/api";
+import { useAuth } from "@/auth/AuthContext";
 import { toast } from "sonner";
 
 const PAGE_SIZE = 20;
@@ -42,6 +44,10 @@ function StatCard({ icon: Icon, label, value, sub }: {
 }
 
 const Records = () => {
+  const [searchParams] = useSearchParams();
+  const initialSessionId = searchParams.get("sessionId") || "all";
+
+  const { role } = useAuth();
   const [records, setRecords]   = useState<AttendanceRecord[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -49,7 +55,7 @@ const Records = () => {
 
   // Filters
   const [search,     setSearch]     = useState("");
-  const [sessionId,  setSessionId]  = useState<string>("all");
+  const [sessionId,  setSessionId]  = useState<string>(initialSessionId);
   const [dateFilter, setDateFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [deptFilter, setDeptFilter] = useState<string>("all");
@@ -153,9 +159,11 @@ const Records = () => {
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
               Refresh
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" /> Export CSV
-            </Button>
+            {role === "admin" && (
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="w-4 h-4 mr-2" /> Export CSV
+              </Button>
+            )}
           </div>
         </div>
 

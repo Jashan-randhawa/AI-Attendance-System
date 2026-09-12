@@ -180,18 +180,25 @@ const EnrollPerson = () => {
   if (enrolled) {
     return (
       <AppLayout>
-        <div className="space-y-6 max-w-2xl">
+        <div className="space-y-6 max-w-2xl mx-auto">
           <Card className="border-none shadow-sm">
             <CardContent className="p-12 text-center space-y-4">
               <CheckCircle className="w-16 h-16 text-success mx-auto" />
               <h2 className="text-xl font-bold">{enrolled.name} Enrolled!</h2>
               <p className="text-muted-foreground text-sm">
-                {photoCount} photo(s) processed and stored.
+                {photoCount} photo(s) processed and stored with biometric face embeddings.
               </p>
               {enrolled.department && (
                 <p className="text-sm">Department: <strong>{enrolled.department}</strong></p>
               )}
-              <Button onClick={handleReset}>Enroll Another Person</Button>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <Button variant="default" onClick={() => window.location.href = `/people/${enrolled.id}`}>
+                  View Profile
+                </Button>
+                <Button variant="outline" onClick={handleReset}>
+                  Enroll Another Person
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

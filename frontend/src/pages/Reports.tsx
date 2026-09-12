@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import React, { useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -10,169 +11,281 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  reportsApi,
-  type DailyAttendanceStat, type PersonAttendanceStat,
-} from "@/services/api";
-import { toast } from "sonner";
+  useDailyReports, usePersonReports, useHeatmapReport
+} from "@/hooks/useAttendanceQueries";
+import { AlertTriangle, Calendar, TrendingUp, Users } from "lucide-react";
 
 const Reports = () => {
-  const [dailyData, setDailyData] = useState<DailyAttendanceStat[]>([]);
-  const [personStats, setPersonStats] = useState<PersonAttendanceStat[]>([]);
+  const [days, setDays] = useState<number>(30);
   const [personSearch, setPersonSearch] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([reportsApi.daily(30), reportsApi.persons(30)])
-      .then(([daily, persons]) => {
-        setDailyData(daily);
-        setPersonStats(persons);
-      })
-      .catch(() => toast.error("Failed to load reports"))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: dailyData, isLoading: loadingDaily } = useDailyReports(days);
+  const { data: personStats, isLoading: loadingPersons } = usePersonReports(days);
+  const { data: heatmapData, isLoading: loadingHeatmap } = useHeatmapReport(14);
 
-  const chartData = dailyData.map((d) => ({
+  const loading = loadingDaily || loadingPersons;
+
+  const chartData = (dailyData || []).map((d) => ({
     date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
     rate: Math.round(d.attendance_rate),
+    present: d.total_present,
+    late: d.total_late,
   }));
 
-  // Group by... just use the person stats as dept data approximation
-  const deptMap: Record<string, { present: number; absent: number }> = {};
-  personStats.forEach((p) => {
-    const dept = p.department ?? "Other";
-    if (!deptMap[dept]) deptMap[dept] = { present: 0, absent: 0 };
-    deptMap[dept].present += p.present_count;
-    deptMap[dept].absent += p.total_sessions - p.present_count;
-  });
-  const deptData = Object.entries(deptMap).map(([dept, v]) => ({ dept, ...v }));
+  const filteredPersons = (personStats || []).filter(
+    (p) =>
+      p.person_name.toLowerCase().includes(personSearch.toLowerCase()) ||
+      p.department?.toLowerCase().includes(personSearch.toLowerCase())
+  );
 
-  const defaulters = personStats.filter((p) => p.is_defaulter);
-
-  const searchedPerson = personSearch.trim()
-    ? personStats.filter((p) => p.name.toLowerCase().includes(personSearch.toLowerCase()))
-    : [];
+  const defaulters = (personStats || []).filter((p) => p.attendance_rate < 75);
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Reports & Analytics</h1>
-          <p className="text-muted-foreground text-sm mt-1">Attendance trends and insights</p>
+      <div className="space-y-8 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Attendance Analytics & Reports</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">
+              Long-term trends, departmental analysis, and low-attendance alerts
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border border-border">
+            {[7, 30, 90].map((d) => (
+              <Button
+                key={d}
+                size="sm"
+                variant={days === d ? "default" : "ghost"}
+                className={`h-7 px-3 text-xs ${days === d ? "gradient-primary text-primary-foreground font-semibold" : ""}`}
+                onClick={() => setDays(d)}
+              >
+                Last {d} Days
+              </Button>
+            ))}
+          </div>
         </div>
 
-        {/* Person Search */}
-        <Card className="border-none shadow-sm">
-          <CardHeader><CardTitle className="text-base">🔍 Search Person Record</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              placeholder="Type a name to search…"
-              value={personSearch}
-              onChange={(e) => setPersonSearch(e.target.value)}
-              className="max-w-sm"
-            />
-            {personSearch.trim() && searchedPerson.length === 0 && !loading && (
-              <p className="text-sm text-muted-foreground">No person found matching "{personSearch}"</p>
-            )}
-            {searchedPerson.length > 0 && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead><TableHead>Department</TableHead>
-                    <TableHead>Sessions</TableHead><TableHead>Present</TableHead>
-                    <TableHead>Rate</TableHead><TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {searchedPerson.map((p) => (
-                    <TableRow key={p.person_id}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell>{p.department ?? "—"}</TableCell>
-                      <TableCell>{p.total_sessions}</TableCell>
-                      <TableCell>{p.present_count}</TableCell>
-                      <TableCell>{p.attendance_rate.toFixed(1)}%</TableCell>
-                      <TableCell>
-                        <Badge className={p.is_defaulter
-                          ? "bg-destructive text-destructive-foreground"
-                          : "bg-success text-success-foreground"}>
-                          {p.is_defaulter ? "At Risk" : "Good"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+        {defaulters.length > 0 && (
+          <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-sm text-rose-900">
+                Low Attendance Alert: {defaulters.length} subject(s) below 75% threshold
+              </p>
+              <p className="text-xs text-rose-700 mt-0.5">
+                Review subjects requiring attendance intervention or academic counseling.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" /> Daily Attendance Rate (%)
+              </CardTitle>
+              <CardDescription>Percentage of enrolled subjects present per session day</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="h-64">
+                {loading ? (
+                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Loading chart...</div>
+                ) : chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                      <YAxis domain={[0, 100]} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          borderColor: "hsl(var(--border))",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="rate"
+                        name="Attendance %"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2.5}
+                        dot={{ r: 3, fill: "hsl(var(--primary))" }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">No data for selected period</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-primary" /> Present vs Late Breakdown
+              </CardTitle>
+              <CardDescription>Headcount comparison across recorded days</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="h-64">
+                {loading ? (
+                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Loading breakdown...</div>
+                ) : chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          borderColor: "hsl(var(--border))",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                        }}
+                      />
+                      <Bar dataKey="present" name="Present" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="late" name="Late" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-sm text-muted-foreground">No data for selected period</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base font-semibold">14-Day Attendance Heatmap</CardTitle>
+            <CardDescription>Daily participation intensity per individual</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingHeatmap ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Loading heatmap...</p>
+            ) : heatmapData && heatmapData.matrix && heatmapData.matrix.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left font-medium py-2 px-3 text-muted-foreground">Person</th>
+                      {heatmapData.dates.map((d) => (
+                        <th key={d} className="text-center font-medium py-2 px-1 text-muted-foreground w-8">
+                          {new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday: "narrow" })}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {heatmapData.matrix.slice(0, 15).map((row) => (
+                      <tr key={row.person_id} className="border-b border-border/40 hover:bg-muted/30">
+                        <td className="py-2 px-3 font-medium truncate max-w-[150px]">{row.name}</td>
+                        {heatmapData.dates.map((d) => {
+                          const status = row.days[d];
+                          const bg =
+                            status === "present"
+                              ? "bg-emerald-500 text-white"
+                              : status === "late"
+                              ? "bg-amber-500 text-white"
+                              : status === "absent"
+                              ? "bg-rose-500/40 text-rose-900"
+                              : "bg-muted/60";
+                          return (
+                            <td key={d} className="p-1 text-center">
+                              <span
+                                title={`${row.name} - ${d}: ${status || "none"}`}
+                                className={`inline-block w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${bg}`}
+                              >
+                                {status === "present" ? "P" : status === "late" ? "L" : status === "absent" ? "A" : "-"}
+                              </span>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">No heatmap data available.</p>
             )}
           </CardContent>
         </Card>
 
-        {loading ? (
-          <p className="text-sm text-muted-foreground animate-pulse">Loading reports…</p>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-none shadow-sm">
-                <CardHeader><CardTitle className="text-base">Daily Attendance Rate (%)</CardTitle></CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="rate" stroke="hsl(187 94% 43%)" strokeWidth={2} dot={{ r: 3 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-sm">
-                <CardHeader><CardTitle className="text-base">Department Breakdown</CardTitle></CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={deptData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(214 32% 91%)" />
-                      <XAxis dataKey="dept" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} />
-                      <Tooltip />
-                      <Bar dataKey="present" fill="hsl(187 94% 43%)" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="absent" fill="hsl(0 84% 60%)" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary" /> Individual Subject Attendance Rates
+              </CardTitle>
+              <CardDescription>Full roster breakdown with total sessions and rates</CardDescription>
             </div>
-
-            <Card className="border-none shadow-sm">
-              <CardHeader><CardTitle className="text-base">⚠️ Defaulters (&lt; 75% Attendance)</CardTitle></CardHeader>
-              <CardContent>
-                {defaulters.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">No defaulters — great attendance!</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead><TableHead>Department</TableHead>
-                        <TableHead>Attendance Rate</TableHead><TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {defaulters.map((d) => (
-                        <TableRow key={d.person_id}>
-                          <TableCell className="font-medium">{d.name}</TableCell>
-                          <TableCell>{d.department ?? "—"}</TableCell>
-                          <TableCell>{d.attendance_rate.toFixed(1)}%</TableCell>
-                          <TableCell>
-                            <Badge className="bg-destructive text-destructive-foreground">At Risk</Badge>
+            <div className="w-full sm:w-64">
+              <Input
+                placeholder="Search subject or dept..."
+                value={personSearch}
+                onChange={(e) => setPersonSearch(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingPersons ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">Loading subject rates...</p>
+            ) : filteredPersons.length > 0 ? (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40">
+                      <TableHead>Subject Name</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead className="text-right">Sessions Attended</TableHead>
+                      <TableHead className="text-right">Total Sessions</TableHead>
+                      <TableHead className="text-right">Attendance Rate</TableHead>
+                      <TableHead className="text-right">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPersons.map((p) => {
+                      const isDefaulter = p.attendance_rate < 75;
+                      return (
+                        <TableRow key={p.person_id}>
+                          <TableCell className="font-semibold text-sm">{p.person_name}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{p.department || "General"}</TableCell>
+                          <TableCell className="text-right text-xs font-mono">{p.attended_sessions}</TableCell>
+                          <TableCell className="text-right text-xs font-mono">{p.total_sessions}</TableCell>
+                          <TableCell className="text-right text-xs font-bold">
+                            <span className={isDefaulter ? "text-rose-600" : "text-emerald-600"}>
+                              {Math.round(p.attendance_rate)}%
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {isDefaulter ? (
+                              <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/30 text-[10px]">
+                                Defaulter
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]">
+                                Good Standing
+                              </Badge>
+                            )}
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </>
-        )}
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-6 text-center">No subjects found matching query.</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );

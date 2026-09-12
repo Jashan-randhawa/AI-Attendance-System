@@ -118,3 +118,22 @@ async def get_current_profile(
         is_active=True,
         created_at=datetime.now(timezone.utc),
     )
+
+
+@router.get("/users", response_model=list[UserOut], dependencies=[Depends(require_admin)])
+async def list_users(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """List all registered users (Admin only)."""
+    users = []
+    async for doc in db.users.find().sort("created_at", -1):
+        users.append(
+            UserOut(
+                id=str(doc["_id"]),
+                username=doc["username"],
+                role=doc.get("role", "operator"),
+                is_active=doc.get("is_active", True),
+                created_at=doc.get("created_at", datetime.now(timezone.utc)),
+            )
+        )
+    return users

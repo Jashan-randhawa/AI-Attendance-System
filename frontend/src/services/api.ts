@@ -6,15 +6,33 @@
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
-// In-memory token storage (per security guidance, not stored in localStorage)
-let authToken: string | null = null;
+// Token storage: keep in-memory with sessionStorage fallback for page refresh resilience
+let authToken: string | null = (typeof window !== "undefined" && window.sessionStorage?.getItem("auth_token")) || null;
 
 export function setAuthToken(token: string | null) {
   authToken = token;
+  if (typeof window !== "undefined") {
+    if (token) {
+      window.sessionStorage.setItem("auth_token", token);
+    } else {
+      window.sessionStorage.removeItem("auth_token");
+    }
+  }
 }
 
 export function getAuthToken(): string | null {
   return authToken;
+}
+
+export class ApiError extends Error {
+  status: number;
+  data: any;
+  constructor(status: number, message: string, data?: any) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+  }
 }
 
 // Fallback legacy API key
@@ -45,7 +63,11 @@ async function request<T>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail ?? "Request failed");
+    let msg = err.detail ?? "Request failed";
+    if (Array.isArray(msg)) {
+      msg = msg.map((m: any) => m.msg ?? JSON.stringify(m)).join(", ");
+    }
+    throw new ApiError(res.status, msg, err);
   }
 
   if (res.status === 204) return undefined as T;
@@ -250,6 +272,12 @@ export interface LoginResponse {
   username: string;
 }
 
+export interface UserCreatePayload {
+  username: string;
+  password: string;
+  role: "operator" | "admin";
+}
+
 export const authApi = {
   login: async (credentials: { username: string; password: string }): Promise<LoginResponse> => {
     const data = await request<LoginResponse>("/api/auth/login", {
@@ -263,4 +291,41 @@ export const authApi = {
     setAuthToken(null);
   },
   me: () => request<UserProfile>("/api/auth/me"),
+  listUsers: () => request<UserProfile[]>("/api/auth/users"),
+  registerUser: (body: UserCreatePayload) =>
+    request<UserProfile>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
+// ── System Health / Diagnostics (Step 12) ───────────────────────────────────
+export interface SystemConfig {
+  status: string;
+  issues: string[];
+  MONGODB_URL: string;
+  MONGODB_DB_NAME: string;
+  AZURE_STORAGE_CONNECTION_STRING: string;
+  MIN_CONFIDENCE: string;
+  DUPLICATE_THRESHOLD: string;
+  API_KEY_ADMIN_configured: boolean;
+  API_KEY_OPERATOR_configured: boolean;
+  API_KEY_legacy_configured: boolean;
+}
+
+export interface MissingEncodingsReport {
+  total_active_persons: number;
+  persons_with_encodings: number;
+  persons_missing_encodings: number;
+  missing: Array<{
+    person_id: string;
+    name: string;
+    enrolled_at: string;
+    action_needed: string;
+  }>;
+}
+
+export const systemApi = {
+  getDebugConfig: () => request<SystemConfig>("/api/persons/debug-config"),
+  getDebugEncodings: () => request<MissingEncodingsReport>("/api/persons/debug-encodings"),
 };
