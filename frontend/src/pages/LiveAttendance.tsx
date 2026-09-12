@@ -10,6 +10,10 @@ import { Camera, Video, VideoOff, Zap, Users, AlertCircle, CheckCircle2, ShieldC
 import { toast } from "sonner";
 import { attendanceApi, type Session, type IdentifyResult } from "@/services/api";
 import { useSessions, useCreateSession, useEndSession } from "@/hooks/useAttendanceQueries";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 interface RecognizedPerson extends IdentifyResult {
   time: string;
@@ -32,6 +36,37 @@ const LiveAttendance: React.FC = () => {
   const [autoScan, setAutoScan] = useState(false);
   const [recognized, setRecognized] = useState<RecognizedPerson[]>([]);
   const [lastBoxes, setLastBoxes] = useState<Array<{ box: IdentifyResult["face_box"]; name: string; alreadyMarked: boolean }>>([]);
+
+  const liveRef = useRef<HTMLDivElement>(null);
+
+  const { contextSafe } = useGSAP({ scope: liveRef });
+
+  const triggerMatchFlash = contextSafe(() => {
+    gsap.fromTo(
+      ".viewfinder-flash",
+      { opacity: 0.65, scale: 1 },
+      { opacity: 0, scale: 1.01, duration: 0.6, ease: "power2.out" }
+    );
+  });
+
+  useGSAP(
+    () => {
+      gsap.from(".gsap-live-header", {
+        y: -10,
+        opacity: 0,
+        duration: 0.35,
+        ease: "power2.out",
+      });
+      gsap.from(".gsap-live-control", {
+        y: 12,
+        opacity: 0,
+        duration: 0.4,
+        delay: 0.1,
+        ease: "power2.out",
+      });
+    },
+    { scope: liveRef }
+  );
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -235,6 +270,7 @@ const LiveAttendance: React.FC = () => {
         });
 
         if (res.new_records > 0) {
+          triggerMatchFlash();
           toast.success(`Marked attendance for ${res.new_records} person(s)!`);
         }
       }
@@ -271,8 +307,8 @@ const LiveAttendance: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div ref={liveRef} className="space-y-6 max-w-7xl mx-auto">
+        <div className="gsap-live-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Live Attendance Scanner</h1>
             <p className="text-muted-foreground text-sm mt-0.5">
@@ -304,7 +340,7 @@ const LiveAttendance: React.FC = () => {
         </div>
 
         {!activeSession ? (
-          <Card className="border-border/60 shadow-sm">
+          <Card className="gsap-live-control border-border/60 shadow-sm">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
@@ -348,7 +384,7 @@ const LiveAttendance: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="flex flex-wrap items-center justify-between p-3.5 px-5 rounded-xl bg-card border border-border/70 shadow-xs gap-3">
+          <div className="gsap-live-control flex flex-wrap items-center justify-between p-3.5 px-5 rounded-xl bg-card border border-border/70 shadow-xs gap-3">
             <div className="flex items-center gap-3">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -382,6 +418,7 @@ const LiveAttendance: React.FC = () => {
           <Card className="lg:col-span-2 border-border/60 shadow-sm overflow-hidden">
             <CardContent className="p-0">
               <div className="aspect-video bg-neutral-950 rounded-lg flex items-center justify-center relative overflow-hidden">
+                <div className="viewfinder-flash absolute inset-0 bg-emerald-500/25 border-2 border-emerald-400 rounded-lg pointer-events-none opacity-0 z-20" />
                 <video
                   ref={videoRef}
                   autoPlay

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Link } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import MetricCard from "@/components/MetricCard";
@@ -10,6 +10,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useDashboardMetrics, useDashboardActivity, useSessions, useDailyReports } from "@/hooks/useAttendanceQueries";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 const statusColor: Record<string, string> = {
   present: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
@@ -23,6 +27,40 @@ const Dashboard: React.FC = () => {
   const { data: activeSessions } = useSessions(true);
   const { data: dailyReports } = useDailyReports(7);
 
+  const dashboardRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ defaults: { ease: "power2.out" } });
+      tl.from(".gsap-header", {
+        y: -10,
+        opacity: 0,
+        duration: 0.35,
+      })
+        .from(
+          ".gsap-kpi-card",
+          {
+            y: 16,
+            opacity: 0,
+            duration: 0.4,
+            stagger: 0.07,
+          },
+          "-=0.15"
+        )
+        .from(
+          ".gsap-dashboard-card",
+          {
+            y: 20,
+            opacity: 0,
+            duration: 0.45,
+            stagger: 0.1,
+          },
+          "-=0.2"
+        );
+    },
+    { scope: dashboardRef }
+  );
+
   const weeklyData = (dailyReports || []).map((d) => ({
     day: new Date(d.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" }),
     present: d.total_present,
@@ -33,8 +71,8 @@ const Dashboard: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div ref={dashboardRef} className="space-y-8 max-w-7xl mx-auto">
+        <div className="gsap-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Dashboard Overview</h1>
             <p className="text-muted-foreground text-sm mt-0.5">
@@ -81,38 +119,46 @@ const Dashboard: React.FC = () => {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            title="Total Registered Subjects"
-            value={loadingMetrics ? "..." : (metrics?.total_persons ?? 0)}
-            change={`${metrics?.total_departments ?? 0} active departments`}
-            trend="neutral"
-            icon={Users}
-          />
-          <MetricCard
-            title="Today's Total Scans"
-            value={loadingMetrics ? "..." : (metrics?.today_attendance ?? 0)}
-            change="Real-time check-ins"
-            trend="up"
-            icon={CalendarCheck}
-          />
-          <MetricCard
-            title="Active Sessions"
-            value={loadingMetrics ? "..." : (metrics?.active_sessions ?? 0)}
-            change={`${metrics?.total_sessions ?? 0} total lifetime`}
-            trend="neutral"
-            icon={UserCheck}
-          />
-          <MetricCard
-            title="30-Day Attendance Rate"
-            value={loadingMetrics ? "..." : `${Math.round(metrics?.attendance_rate ?? 0)}%`}
-            change="Organization average"
-            trend="up"
-            icon={TrendingUp}
-          />
+          <div className="gsap-kpi-card">
+            <MetricCard
+              title="Total Registered Subjects"
+              value={loadingMetrics ? "..." : (metrics?.total_persons ?? 0)}
+              change={`${metrics?.total_departments ?? 0} active departments`}
+              trend="neutral"
+              icon={Users}
+            />
+          </div>
+          <div className="gsap-kpi-card">
+            <MetricCard
+              title="Today's Total Scans"
+              value={loadingMetrics ? "..." : (metrics?.today_attendance ?? 0)}
+              change="Real-time check-ins"
+              trend="up"
+              icon={CalendarCheck}
+            />
+          </div>
+          <div className="gsap-kpi-card">
+            <MetricCard
+              title="Active Sessions"
+              value={loadingMetrics ? "..." : (metrics?.active_sessions ?? 0)}
+              change={`${metrics?.total_sessions ?? 0} total lifetime`}
+              trend="neutral"
+              icon={UserCheck}
+            />
+          </div>
+          <div className="gsap-kpi-card">
+            <MetricCard
+              title="30-Day Attendance Rate"
+              value={loadingMetrics ? "..." : `${Math.round(metrics?.attendance_rate ?? 0)}%`}
+              change="Organization average"
+              trend="up"
+              icon={TrendingUp}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 border-border/60 shadow-sm">
+          <Card className="gsap-dashboard-card lg:col-span-2 border-border/60 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
                 <CardTitle className="text-base font-semibold">Weekly Attendance Trend</CardTitle>
@@ -147,7 +193,7 @@ const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card className="gsap-dashboard-card border-border/60 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
                 <CardTitle className="text-base font-semibold">Recent Activity</CardTitle>
