@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,11 @@ import {
   useDailyReports, usePersonReports, useHeatmapReport
 } from "@/hooks/useAttendanceQueries";
 import { AlertTriangle, Calendar, TrendingUp, Users } from "lucide-react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 const Reports = () => {
   const [days, setDays] = useState<number>(30);
@@ -24,6 +29,35 @@ const Reports = () => {
   const { data: heatmapData, isLoading: loadingHeatmap } = useHeatmapReport(14);
 
   const loading = loadingDaily || loadingPersons;
+
+  const reportsContainerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      gsap.from(".gsap-reports-header", {
+        y: -12,
+        opacity: 0,
+        duration: 0.4,
+        ease: "power2.out",
+      });
+
+      ScrollTrigger.batch(".gsap-scroll-section", {
+        start: "top 88%",
+        once: true,
+        onEnter: (batch) => {
+          gsap.from(batch, {
+            y: 20,
+            opacity: 0,
+            duration: 0.45,
+            stagger: 0.1,
+            ease: "power2.out",
+            overwrite: true,
+          });
+        },
+      });
+    },
+    { scope: reportsContainerRef, dependencies: [days, loading] }
+  );
 
   const chartData = (dailyData || []).map((d) => ({
     date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -42,8 +76,8 @@ const Reports = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div ref={reportsContainerRef} className="space-y-8 max-w-7xl mx-auto">
+        <div className="gsap-reports-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Attendance Analytics & Reports</h1>
             <p className="text-muted-foreground text-sm mt-0.5">
@@ -67,7 +101,7 @@ const Reports = () => {
         </div>
 
         {defaulters.length > 0 && (
-          <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 flex items-start gap-3">
+          <div className="gsap-scroll-section p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-sm text-rose-900">
@@ -81,7 +115,7 @@ const Reports = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-border/60 shadow-sm">
+          <Card className="gsap-scroll-section border-border/60 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-primary" /> Daily Attendance Rate (%)
@@ -123,7 +157,7 @@ const Reports = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card className="gsap-scroll-section border-border/60 shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-primary" /> Present vs Late Breakdown
@@ -160,7 +194,7 @@ const Reports = () => {
           </Card>
         </div>
 
-        <Card className="border-border/60 shadow-sm">
+        <Card className="gsap-scroll-section border-border/60 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base font-semibold">14-Day Attendance Heatmap</CardTitle>
             <CardDescription>Daily participation intensity per individual</CardDescription>
@@ -217,7 +251,7 @@ const Reports = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 shadow-sm">
+        <Card className="gsap-scroll-section border-border/60 shadow-sm">
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <CardTitle className="text-base font-semibold flex items-center gap-2">
