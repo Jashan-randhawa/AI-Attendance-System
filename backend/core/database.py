@@ -6,7 +6,7 @@ Collections: persons, sessions, attendance
 
 import os
 import logging
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import Optional, Union
 
 from bson import ObjectId
@@ -89,6 +89,24 @@ async def init_db() -> None:
 
     # ── users indexes (per-user identity) ────────────────────────────────────
     await db.users.create_index([("username", ASCENDING)], unique=True)
+
+    # Auto-seed default admin user if users collection is empty
+    try:
+        user_count = await db.users.count_documents({})
+        if user_count == 0:
+            from core.auth import hash_password
+            default_user = os.getenv("DEFAULT_ADMIN_USERNAME", "admin")
+            default_pass = os.getenv("DEFAULT_ADMIN_PASSWORD", "admin123")
+            await db.users.insert_one({
+                "username": default_user,
+                "password_hash": hash_password(default_pass),
+                "role": "admin",
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc),
+            })
+            logger.info("Initialized default administrator account '%s'", default_user)
+    except Exception as e:
+        logger.warning("Could not auto-seed default admin user: %s", e)
 
     logger.info("MongoDB indexes created on '%s'", DB_NAME)
 
