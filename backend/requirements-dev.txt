@@ -1,0 +1,6 @@
+# Dev/test-only dependencies (Remediation Plan item #11).
+# Not installed in production — kept separate from requirements.txt so the
+# production image doesn't carry test tooling.
+
+pytest>=8.0.0
+pytest-asyncio>=0.24.0

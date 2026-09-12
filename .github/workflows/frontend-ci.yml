@@ -1,0 +1,82 @@
+name: Frontend CI
+
+# Remediation Plan item #8 / #10 — dependency scanning + test/build gating
+# for the frontend, mirroring backend-ci.yml. This was scoped in the
+# original plan ("Same for npm audit on the frontend package-lock.json")
+# but never added — see Remediation_Plan_Addendum.md, Gap #1.
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+
+jobs:
+  dependency-scan:
+    name: Dependency vulnerability scan (npm audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (from lockfile)
+        run: npm ci
+
+      - name: Audit production dependencies for known CVEs
+        run: npm audit --omit=dev --audit-level=high
+        # Scoped to --omit=dev: production dependencies are what actually
+        # ships to end users' browsers, so that's the meaningful gate for
+        # "High/Critical" here, matching the backend's pip-audit policy.
+        # Dev-only tooling (vite/rollup/vitest) can carry its own advisories
+        # (e.g. a build-time Rollup path-traversal issue was open as of the
+        # audit that added this workflow) without blocking every PR — their
+        # blast radius is a compromised local/CI build environment, not
+        # production users, and fixing them means a major-version bump that
+        # deserves its own reviewed PR rather than a forced silent upgrade
+        # here.
+
+      - name: Audit dev dependencies for known CVEs (report only)
+        run: npm audit --include=dev --audit-level=high || echo "::warning::Dev-dependency vulnerabilities found — see job log above. Not build-blocking; triage separately."
+        continue-on-error: true
+        # Keeps dev-tooling CVEs visible in every CI run without blocking
+        # merges on a major Vite/Vitest bump. Remove this softened step once
+        # those upgrades have been done deliberately and reviewed.
+
+  lint-test-build:
+    name: Lint, unit tests, and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies (from lockfile)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests (vitest)
+        run: npm run test
+
+      - name: Production build
+        run: npm run build

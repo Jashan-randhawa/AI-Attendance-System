@@ -1,0 +1,32 @@
+# backend/.gitignore
+# Remediation Plan item #6 — secrets hygiene.
+# There was previously NO .gitignore anywhere in this repo, meaning .env
+# (containing MONGODB_URL, AZURE_STORAGE_CONNECTION_STRING, API_KEY) had no
+# protection against being committed. This closes that gap for the backend.
+
+# Environment / secrets — never commit real values
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# InsightFace model cache (downloaded at runtime/build, ~300MB — never commit)
+.insightface/
+
+# OS / editor cruft
+.DS_Store
+*.swp

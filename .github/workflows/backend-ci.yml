@@ -1,0 +1,103 @@
+name: Backend CI
+
+# Remediation Plan item #8 — dependency scanning + basic build verification.
+# Scoped to backend/ only for this phase; a frontend workflow (npm audit,
+# lint, vitest) is tracked separately and will be added in the frontend phase.
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+jobs:
+  dependency-scan:
+    name: Dependency vulnerability scan (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit backend/requirements.txt for known CVEs
+        run: pip-audit -r backend/requirements.txt
+        # Non-zero exit on any known vulnerability fails the build by default.
+        # If a finding needs to be triaged/accepted temporarily, use
+        # `pip-audit -r backend/requirements.txt --ignore-vuln <ID>` with a
+        # comment explaining why, rather than removing this step.
+
+  build-check:
+    name: Syntax + import check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install lightweight deps
+        # Skips insightface/onnxruntime (large, GPU/CPU-provider install
+        # complexity not needed for a syntax/import smoke test) — those are
+        # imported lazily inside core/azure_face.py's _get_insight_app(),
+        # not at module load time, so this is sufficient to catch wiring
+        # errors (bad imports, missing dependencies, route registration
+        # mistakes) without a multi-minute CI job.
+        run: |
+          pip install fastapi uvicorn slowapi motor pymongo python-dotenv \
+                      "pydantic[email]" python-multipart opencv-python-headless \
+                      numpy Pillow azure-storage-blob
+
+      - name: Compile check
+        run: python -m py_compile backend/main.py backend/core/*.py backend/routers/*.py
+
+      - name: Import + route registration check
+        working-directory: backend
+        env:
+          MONGODB_URL: "mongodb://localhost:27017"
+          API_KEY: "ci-placeholder-key"
+        run: |
+          python -c "
+          import main
+          schema = main.app.openapi()
+          paths = list(schema['paths'].keys())
+          assert '/api/persons/enroll' in paths, 'persons router not wired'
+          assert '/api/attendance/mark/{session_id}' in paths, 'attendance router not wired'
+          assert '/api/sessions' in paths, 'sessions router not wired'
+          print(f'OK — {len(paths)} routes registered.')
+          "
+
+  unit-tests:
+    name: pytest (Remediation Plan item #11)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install lightweight deps + test tooling
+        # Same rationale as build-check above: insightface/onnxruntime are
+        # mocked out in tests/conftest.py, so they're not needed here either.
+        run: |
+          pip install fastapi uvicorn slowapi motor pymongo python-dotenv \
+                      "pydantic[email]" python-multipart opencv-python-headless \
+                      numpy Pillow azure-storage-blob httpx
+          pip install -r backend/requirements-dev.txt
+
+      - name: Run backend unit tests
+        working-directory: backend
+        env:
+          MONGODB_URL: "mongodb://localhost:27017"
+          API_KEY: "ci-placeholder-key"
+        run: pytest -v
