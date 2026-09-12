@@ -1,689 +1,612 @@
-# 🎓 Smart Attend — AI-Powered Attendance System
+# 🎓 Smart Attend — Enterprise AI Attendance System
 
-> Face-recognition attendance tracking built with **InsightFace**, **MongoDB Atlas**, **Azure Blob Storage**, **FastAPI**, and **React + TypeScript**.
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React 18](https://img.shields.io/badge/React-18-61DAFB.svg?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MongoDB Motor](https://img.shields.io/badge/MongoDB-Motor%20Async-47A248.svg?style=flat&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![InsightFace](https://img.shields.io/badge/AI-InsightFace%20ONNX-FF6F00.svg?style=flat)](https://github.com/deepinsight/insightface)
+[![Tests](https://img.shields.io/badge/tests-63%20passed-brightgreen.svg?style=flat)](#testing)
+[![Security](https://img.shields.io/badge/security-Phase%204%20Hardened-blueviolet.svg?style=flat)](#security--remediation-architecture)
+
+> High-throughput, privacy-focused facial recognition attendance system featuring local neural inference with **InsightFace**, async persistence with **MongoDB Atlas (Motor)**, role-based access control with **per-user JWT authentication**, and a modern **React + Vite** dashboard.
 
 ---
 
 ## 📋 Table of Contents
 
 - [Overview](#overview)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
+- [System Architecture](#system-architecture)
+- [Security & Remediation Architecture (Phase 4)](#security--remediation-architecture-phase-4)
+- [Project Directory Structure](#project-directory-structure)
 - [Tech Stack](#tech-stack)
-- [Features](#features)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
-  - [Backend Setup](#backend-setup)
-  - [Frontend Setup](#frontend-setup)
+  - [1. Backend Setup](#1-backend-setup)
+  - [2. User Bootstrapping & DB Migration](#2-user-bootstrapping--db-migration)
+  - [3. Frontend Setup](#3-frontend-setup)
 - [Environment Variables](#environment-variables)
-- [API Reference](#api-reference)
-- [Frontend Pages](#frontend-pages)
-- [Database Schema](#database-schema)
-- [Face Recognition Pipeline](#face-recognition-pipeline)
-- [Deployment](#deployment)
-  - [Docker](#docker)
-  - [Render](#render)
+- [API Reference Matrix](#api-reference-matrix)
+- [Database Schema & Indexes](#database-schema--indexes)
+- [Face Recognition & Quality Pipeline](#face-recognition--quality-pipeline)
+- [Testing Suite](#testing-suite)
+- [Operations & Scaling Triggers](#operations--scaling-triggers)
+- [Deployment Guide](#deployment-guide)
+  - [Docker Container](#docker-container)
+  - [Render + Vercel Deployment](#render--vercel-deployment)
   - [Azure App Service](#azure-app-service)
-- [Configuration Tuning](#configuration-tuning)
-- [Troubleshooting](#troubleshooting)
+- [Troubleshooting & FAQ](#troubleshooting--faq)
 - [Disaster Recovery](docs/DISASTER_RECOVERY.md)
 
 ---
 
 ## Overview
 
-**Smart Attend** is a full-stack, AI-powered attendance system that replaces manual roll calls with automated face recognition. A session organiser uploads or streams a photo of a group; the system detects all faces, matches them against enrolled persons stored in MongoDB, and records attendance — all in a single API call.
+**Smart Attend** eliminates physical punch-cards and manual roll calls with automated, multi-face biometric detection. An operator uploads or streams an image or webcam feed; the neural pipeline detects all faces simultaneously, extracts 512-dimensional facial embeddings, performs cosine similarity matching against enrolled profiles, and marks session attendance idempotently in under a second.
 
-Key capabilities:
-
-- Enroll persons with 1–10 reference photos
-- Mark attendance from any image (webcam frame, uploaded photo)
-- Prevent duplicate records per person per session
-- Generate daily/per-person reports and heatmaps
-- Export attendance as CSV
-- Soft-delete persons without losing historical records
+### Highlights
+- **Simultaneous Multi-Face Recognition**: Identify and mark entire groups from a single camera frame.
+- **Strict Role-Based Access Control**: Granular permissions (Public, Operator, Admin) backed by signed JWT bearer tokens and backward-compatible shared secret fallbacks.
+- **Audit Tracking**: Every mutating event records `marked_by` and `enrolled_by` identity stamps.
+- **Double-Mark Prevention**: Compound unique indexes enforce strict idempotency per person per session.
+- **Transactional Rollback**: Enrollment failures trigger automatic compensating cleanup, preventing orphaned biometric records.
+- **Buffer & Dimension Security**: Comprehensive validation preventing decompression bombs and malformed payloads (10 MB max size, 6000×6000 px max dimension).
+- **Consolidated Async Architecture**: 100% async database operations using Motor, eliminating event-loop blocking.
 
 ---
 
-## Architecture
+## System Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                        Browser                          │
-│   React + Vite + Tailwind + shadcn/ui + React Query     │
-│   Pages: Dashboard · Live · Enroll · Records · Reports  │
-└───────────────────────┬─────────────────────────────────┘
-                        │ HTTP / REST
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│                   FastAPI Backend                        │
-│                                                         │
-│   /api/dashboard  →  dashboard.py                       │
-│   /api/persons    →  persons.py    ──► InsightFace       │
-│   /api/sessions   →  sessions.py                        │
-│   /api/attendance →  attendance.py ──► InsightFace       │
-│   /api/reports    →  reports.py                         │
-│                                                         │
-│   core/azure_face.py  (InsightFace wrapper)             │
-│   core/database.py    (Motor async MongoDB)             │
-│   core/schemas.py     (Pydantic v2 models)              │
-└──────────┬──────────────────────┬───────────────────────┘
-           │                      │
-           ▼                      ▼
-  MongoDB Atlas            Azure Blob Storage
-  (persons,                (enrollment photos
-   sessions,                stored per person)
-   attendance,
-   face_encodings)
+```mermaid
+flowchart TD
+    Client["Client Devices / Webcam Streams"] --> Frontend["React 18 + Vite SPA\n(Tailwind CSS + shadcn/ui)"]
+    Frontend -- "REST API (Bearer JWT / X-API-Key)" --> Gateway["FastAPI Application"]
+
+    subgraph Security Layer
+        RateLimiter["SlowAPI Rate Limiter"]
+        AuthRBAC["JWT & RBAC Gate\n(Operator / Admin)"]
+        Validation["Image & Dimension Validator\n(Pillow Verify + 6000px limit)"]
+    end
+
+    Gateway --> RateLimiter --> AuthRBAC --> Validation
+
+    subgraph Compute Layer
+        ThreadPool["Thread Pool Executor\n(CPU-bound OpenCV & InsightFace)"]
+        EventLoop["AsyncIO Event Loop\n(I/O-bound Motor operations)"]
+    end
+
+    Validation --> ThreadPool
+    Validation --> EventLoop
+
+    ThreadPool -- "Inference & Cosine Sim" --> InsightFace["InsightFace ONNX\n(buffalo_sc model)"]
+    EventLoop -- "Async Motor Driver" --> MongoDB[("MongoDB Atlas\n(users, persons, sessions,\nattendance, face_encodings)")]
+    EventLoop -- "Optional Cloud Storage" --> AzureBlob[("Azure Blob Storage\n(Photo archival)")]
 ```
 
 ---
 
-## Project Structure
+## Security & Remediation Architecture (Phase 4)
+
+Smart Attend has undergone comprehensive security remediation and architecture modernization across 12 specific dimensions:
+
+| Finding | Severity | Resolution Implemented |
+|---|---|---|
+| **1. Unprotected `/identify`** | `HIGH` | Gated behind `require_operator` authentication, eliminating open biometric disclosure. |
+| **2. Unauthenticated Read Endpoints** | `HIGH` | All read paths authenticated: operational endpoints (`/sessions`, `/attendance`, `/dashboard`) require `operator`; directory details and aggregate analytics (`/persons`, `/reports`) require `admin`. |
+| **3. Orphaned Biometric Embeddings** | `HIGH` | Implemented compensating rollback in `routers/persons.py`: if database insertion fails after embedding computation, the face embedding is cleanly rolled back. |
+| **4. Broad Exception Swallowing** | `MEDIUM` | Replaced bare `except Exception: pass` in attendance marking with `except DuplicateKeyError: pass`, logging legitimate collisions while letting real DB faults surface. |
+| **5. Raw Exception Leaks** | `MEDIUM` | Replaced interpolated exception strings (`f"Error: {e}"`) with sanitized, user-safe error messages while preserving full stack traces in server logs. |
+| **6. Image Buffer Exhaustion** | `MEDIUM` | Added post-decode pixel dimension validation (`width <= 6000` and `height <= 6000`) before passing data to computer vision pipelines. |
+| **7. Deprecated Naive Datetimes** | `LOW` | Migrated all timestamp call sites from `datetime.utcnow()` to timezone-aware `datetime.now(UTC)`. |
+| **8. Dead Azure Training Code** | `LOW` | Removed unused legacy `train_person_group()` no-op from `core/azure_face.py`. |
+| **9. `session_id` Type Inconsistency** | `MEDIUM` | Standardized `session_id` as native MongoDB `ObjectId` across storage, indexes, and queries, eliminating `$toString` aggregation overhead. Includes one-time migration utility. |
+| **10. Dual Database Clients** | `MEDIUM` | Consolidated all database access onto `Motor` (`AsyncIOMotorClient`), eliminating the secondary synchronous `pymongo.MongoClient`. |
+| **11. Shared Secrets to Per-User Identity** | `MEDIUM` | Introduced per-user authentication with salted `scrypt` password hashing, signed JWTs (`/api/auth/login`), audit tracking (`marked_by`, `enrolled_by`), and legacy `X-API-Key` fallback. |
+| **12. Embedding Store Scaling** | `MEDIUM` | Formalized explicit performance trigger thresholds (>500 users, p95 latency >2.0s) and multi-tier scaling roadmap in `core/azure_face.py`. |
+
+---
+
+## Project Directory Structure
 
 ```
-AI-Attendance-System-main/
-│
+AI-Attendance-System/
 ├── docs/
-│   └── DISASTER_RECOVERY.md       # Backup verification + per-collection recovery steps
+│   ├── DISASTER_RECOVERY.md       # Backup verification & collection recovery runbooks
+│   └── SECRET_ROTATION.md         # Cryptographic & API key rotation procedures
 │
 ├── .github/workflows/
-│   └── backend-ci.yml             # Dependency scan, import/route check, pytest — every push/PR
+│   ├── backend-ci.yml             # CI: dependency audit, route verification, pytest
+│   └── frontend-ci.yml            # CI: build, typecheck, linting
 │
 ├── backend/
-│   ├── main.py                    # FastAPI app entrypoint, CORS (+ wildcard guard), router registration
-│   ├── Dockerfile                 # Production Docker image (python:3.11-slim)
-│   ├── requirements.txt           # Python dependencies
-│   ├── requirements-dev.txt       # Test-only dependencies (pytest, pytest-asyncio)
-│   ├── pytest.ini                 # pytest config (asyncio auto mode)
-│   ├── .env.example               # All required environment variables
-│   ├── .gitignore
-│   ├── sitecustomize.py           # Python startup customisation
+│   ├── main.py                    # Application entrypoint, CORS guard, router registration
+│   ├── Dockerfile                 # Production multi-stage Dockerfile (python:3.11-slim)
+│   ├── requirements.txt           # Core backend dependencies
+│   ├── requirements-dev.txt       # Test harness dependencies
+│   ├── pytest.ini                 # Pytest configuration (asyncio mode)
+│   ├── .env.example               # Backend configuration template
 │   │
 │   ├── core/
-│   │   ├── __init__.py
-│   │   ├── auth.py                # Operator/admin API-key roles (RBAC)
-│   │   ├── rate_limit.py          # Shared slowapi Limiter instance
-│   │   ├── validation.py          # Upload size/type validation
-│   │   ├── logging_context.py     # Request-ID middleware + log correlation
-│   │   ├── azure_face.py          # InsightFace model + MongoDB face store wrapper + timing metrics
-│   │   ├── database.py            # Motor async client, index creation, DB helpers
-│   │   └── schemas.py             # Pydantic v2 request/response schemas
+│   │   ├── auth.py                # JWT creation/verification, scrypt hashing, RBAC dependencies
+│   │   ├── azure_face.py          # InsightFace ONNX wrapper, face quality gate, async Motor store
+│   │   ├── database.py            # Motor async client, centralized index definitions, queries
+│   │   ├── logging_context.py     # Request-ID correlation middleware & logging filter
+│   │   ├── rate_limit.py          # SlowAPI rate limiter configuration
+│   │   ├── schemas.py             # Pydantic v2 schemas & request/response models
+│   │   └── validation.py          # Image byte-size and pixel-dimension validators
 │   │
 │   ├── routers/
-│   │   ├── __init__.py
-│   │   ├── dashboard.py           # GET /api/dashboard/metrics & /activity
-│   │   ├── persons.py             # CRUD + InsightFace enrollment (admin-gated)
-│   │   ├── sessions.py            # Session lifecycle — create/end (operator-gated)
-│   │   ├── attendance.py          # Identify faces + mark attendance (operator) + CSV export (admin)
-│   │   └── reports.py             # Daily stats, per-person rates, heatmap
+│   │   ├── auth.py                # POST /api/auth/login, POST /register, GET /me
+│   │   ├── persons.py             # Person enrollment with rollback, CRUD, debug diagnostics
+│   │   ├── sessions.py            # Session lifecycle (create, list, end)
+│   │   ├── attendance.py          # Face identification, attendance marking, CSV export
+│   │   ├── dashboard.py           # Real-time metrics & recent activity feeds
+│   │   └── reports.py             # Daily attendance stats, per-person rates, heatmap matrices
+│   │
+│   ├── scripts/
+│   │   ├── create_user.py         # CLI bootstrap for operator/admin user accounts
+│   │   └── migrate_session_id_to_objectid.py # Migration tool for legacy string session IDs
 │   │
 │   └── tests/
-│       ├── conftest.py            # Shared fakes (FakeFace, FakeInsightApp) — no real model/DB needed
-│       ├── test_face_matching.py       # Cosine similarity, quality-check rejections, identify() thresholds
-│       ├── test_duplicate_detection.py # check_duplicate_face() threshold edge cases
-│       ├── test_attendance_idempotency.py # already_marked idempotency path
-│       ├── test_auth_roles.py          # Operator vs admin RBAC behavior
-│       └── test_cors_config.py         # Wildcard-origin startup guard
+│       ├── conftest.py            # Shared fixtures & test doubles (FakeFace, FakeInsightApp)
+│       ├── test_auth_roles.py     # RBAC role separation & legacy header compatibility tests
+│       ├── test_user_jwt_auth.py  # JWT issuance, verification, scrypt, and audit recording
+│       ├── test_session_id_objectid.py # ObjectId serialization and lookup tests
+│       ├── test_single_mongo_client.py # Verification of unified Motor async client
+│       ├── test_attendance_idempotency.py # Idempotent attendance mark tests
+│       ├── test_duplicate_detection.py # Face duplicate threshold tests
+│       ├── test_enrollment_rollback.py # Compensating transaction rollback tests
+│       ├── test_face_matching.py  # Cosine similarity and quality filter tests
+│       ├── test_validation.py     # Image dimension limits & error sanitization tests
+│       ├── test_cors_config.py    # CORS wildcard startup guard tests
+│       └── test_cleanup_items.py  # Deprecation fixes & dead code removal tests
 │
 └── frontend/
-    ├── index.html
+    ├── package.json
     ├── vite.config.ts
     ├── tailwind.config.ts
-    ├── tsconfig.json
-    ├── package.json
-    ├── vercel.json                # SPA routing config for Vercel
     ├── .env.example
     │
     └── src/
-        ├── App.tsx                # Route definitions (react-router-dom v6)
-        ├── main.tsx               # React root
-        ├── index.css              # Global styles
-        │
         ├── services/
-        │   └── api.ts             # Centralised typed API client (all fetch calls)
-        │
+        │   └── api.ts             # Typed API client with in-memory Bearer token management
         ├── pages/
-        │   ├── Index.tsx          # Dashboard — metrics + recent activity
-        │   ├── LiveAttendance.tsx # Camera/upload → identify → mark
-        │   ├── EnrollPerson.tsx   # Multi-photo enrollment form
-        │   ├── Records.tsx        # Filterable attendance records table
-        │   ├── Reports.tsx        # Charts: daily trend, per-person, defaulters
-        │   └── NotFound.tsx       # 404 page
-        │
+        │   ├── Index.tsx          # Real-time attendance dashboard & activity timeline
+        │   ├── LiveAttendance.tsx # Camera feed / image upload attendance marker
+        │   ├── EnrollPerson.tsx   # Multi-image biometric registration form
+        │   ├── Records.tsx        # Filterable historical attendance table & CSV download
+        │   ├── Reports.tsx        # Trend charts, defaulter breakdown, calendar heatmaps
+        │   └── NotFound.tsx       # 404 handler
         ├── components/
-        │   ├── AppLayout.tsx      # Shell with sidebar + main content area
-        │   ├── AppSidebar.tsx     # Responsive navigation sidebar (hamburger on mobile)
-        │   ├── MetricCard.tsx     # Dashboard KPI card
-        │   ├── NavLink.tsx        # Active-aware navigation link
-        │   └── ui/                # shadcn/ui component library (40+ components)
-        │
-        ├── hooks/
-        │   ├── use-mobile.tsx     # Breakpoint hook (md = 768 px)
-        │   └── use-toast.ts       # Toast notification hook
-        │
-        └── lib/
-            └── utils.ts           # Tailwind `cn()` helper
+        │   ├── AppLayout.tsx      # Application layout shell
+        │   ├── AppSidebar.tsx     # Responsive navigation sidebar
+        │   ├── MetricCard.tsx     # KPI presentation card
+        │   └── ui/                # shadcn/ui components (Radix primitives)
+        └── hooks/
+            └── use-toast.ts       # Toast notifications hook
 ```
 
 ---
 
 ## Tech Stack
 
-### Backend
-
-| Layer | Technology |
-|---|---|
-| Framework | FastAPI 0.115+ |
-| Face Recognition | InsightFace (`buffalo_sc` model) + ONNX Runtime |
-| Image Processing | OpenCV headless (CLAHE preprocessing), Pillow |
-| Database | MongoDB Atlas via Motor (async) |
-| File Storage | Azure Blob Storage |
-| Validation | Pydantic v2 |
-| Server | Uvicorn (ASGI) |
-| Containerisation | Docker (python:3.11-slim) |
-
-### Frontend
-
-| Layer | Technology |
-|---|---|
-| Framework | React 18 + Vite 5 |
-| Language | TypeScript 5 |
-| Styling | Tailwind CSS 3 + shadcn/ui |
-| Routing | React Router v6 |
-| Data Fetching | TanStack React Query v5 |
-| Charts | Recharts |
-| Forms | React Hook Form + Zod |
-| Icons | Lucide React |
-| Notifications | Sonner |
-
----
-
-## Features
-
-### Face Enrollment
-- Upload 1–10 reference photos per person
-- CLAHE preprocessing for varied lighting conditions
-- 512-dimensional face embedding stored in MongoDB (`face_encodings` collection)
-- Duplicate detection: rejects enrollment if similarity > `DUPLICATE_THRESHOLD` (default 0.45)
-- Photos stored in Azure Blob Storage, URL saved to person record
-- Supports `name`, `email`, `department` metadata
-
-### Live Attendance
-- Submit a webcam frame or uploaded image to `/api/attendance/mark/{session_id}`
-- InsightFace detects all faces in the image simultaneously
-- Each detected face embedding is compared against all enrolled embeddings
-- Attendance record created only if confidence ≥ `MIN_CONFIDENCE` (default 0.40)
-- Compound unique index prevents double-marking per (person, session) pair
-- Response includes bounding boxes for UI overlay
-
-### Session Management
-- Create named sessions with optional department filter
-- List active or all sessions
-- End sessions with a timestamp
-- Attendance records are always scoped to a session
-
-### Reports & Analytics
-- **Daily trend**: line chart of attendance rate over the last N days
-- **Per-person stats**: total sessions attended, attendance rate, defaulter flag (<75%)
-- **Heatmap**: person × date attendance matrix
-- **CSV export**: download all records, filterable by session or date
-
-### Dashboard
-- Total enrolled persons
-- Sessions created today
-- Persons marked present today
-- Overall attendance rate (percentage)
-- Latest 8 attendance events with name, department, session, and confidence
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Backend Framework** | [FastAPI](https://fastapi.tiangolo.com/) (0.115+) | High-performance asynchronous REST API |
+| **Face Recognition** | [InsightFace](https://github.com/deepinsight/insightface) (`buffalo_sc`) + ONNX Runtime | Local CPU/GPU facial detection and 512-d feature extraction |
+| **Image Preprocessing** | OpenCV (`cv2` headless) + Pillow | CLAHE lighting equalization, color mapping, dimension limits |
+| **Database** | [MongoDB Atlas](https://www.mongodb.com/atlas) via [Motor](https://motor.readthedocs.io/) | Async document persistence, unique index constraints |
+| **Identity & Security** | PyJWT + `hashlib.scrypt` + SlowAPI | Salted credential hashing, JWT tokens, IP rate limiting |
+| **Data Validation** | [Pydantic v2](https://docs.pydantic.dev/) | Strict typing, deserialization, and JSON schema generation |
+| **Frontend Framework** | [React 18](https://react.dev/) + [Vite 5](https://vitejs.dev/) | Client-side user interface and build tooling |
+| **Language** | [TypeScript 5](https://www.typescriptlang.org/) | Type-safe development across UI and API client |
+| **Design System** | [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) | Accessible component styling and responsive layouts |
+| **State & Data Fetching** | [TanStack Query v5](https://tanstack.com/query) | Async state caching, automated refetching, mutation lifecycle |
+| **Charts & Visuals** | [Recharts](https://recharts.org/) | Interactive attendance trends, defaulter bars, heatmaps |
 
 ---
 
 ## Prerequisites
 
-| Requirement | Version |
-|---|---|
-| Python | 3.11+ |
-| Node.js / npm | 18+ / 9+ |
-| MongoDB Atlas | Free tier sufficient |
-| Azure Storage Account | For photo storage |
-| Git | Any recent version |
-
-> **Note:** InsightFace requires a C++ compiler at install time. The Dockerfile handles this automatically with `apt-get install g++`.
+- **Python**: `3.11` or higher
+- **Node.js**: `18.x` or higher (`npm` 9+)
+- **MongoDB**: MongoDB Atlas cluster or local instance (v6.0+)
+- **Azure Storage** *(optional)*: Azure Storage Account connection string for blob archival
+- **Build Tools**: C++ build toolchain (required for compiling InsightFace Cython bindings during initial install; pre-configured inside the Docker image)
 
 ---
 
 ## Getting Started
 
-### Backend Setup
+### 1. Backend Setup
 
 ```bash
-# 1. Enter the backend directory
-cd backend
+# Clone repository
+git clone https://github.com/Jashan-randhawa/AI-Attendance-System.git
+cd AI-Attendance-System/backend
 
-# 2. Create and activate a virtual environment
+# Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
+# On Linux/macOS:
+source venv/bin/activate
+# On Windows:
+venv\Scripts\activate
 
-# 3. Install Python dependencies
+# Install dependencies
 pip install -r requirements.txt
-# Note: InsightFace compiles a Cython extension — this takes ~2-3 minutes on first install
 
-# 4. Configure environment variables
+# Configure environment variables
 cp .env.example .env
-# Open .env and fill in your keys (see Environment Variables section)
+# Edit .env with your MongoDB URL, secrets, and allowed origins
+```
 
-# 5. Start the development server
+### 2. User Bootstrapping & DB Migration
+
+Create your initial administrative account using the CLI provisioning tool:
+
+```bash
+python scripts/create_user.py --username admin --password "YourSuperSecretPassword123!" --role admin
+```
+
+*(Optional)* If you have legacy records created prior to Step 9 where `session_id` was stored as plain text, migrate them to native MongoDB `ObjectId`:
+
+```bash
+# Run a dry-run check first
+python scripts/migrate_session_id_to_objectid.py --dry-run
+
+# Apply migration
+python scripts/migrate_session_id_to_objectid.py
+
+# Verify all records are now native ObjectId
+python scripts/migrate_session_id_to_objectid.py --verify
+```
+
+Start the backend development server:
+
+```bash
 uvicorn main:app --reload --port 8000
 ```
 
-The API will be available at **http://localhost:8000**  
-Interactive docs (Swagger UI): **http://localhost:8000/docs**  
-ReDoc: **http://localhost:8000/redoc**
+- **Interactive API Documentation (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Alternative Documentation (ReDoc)**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-On first startup, the backend will:
-1. Connect to MongoDB Atlas and verify the connection
-2. Create all required indexes (persons, sessions, attendance)
-3. Pre-warm the InsightFace `buffalo_sc` model in a background executor (~10-60 seconds on first run — the model (~300 MB) is downloaded automatically)
-
----
-
-### Frontend Setup
+### 3. Frontend Setup
 
 ```bash
-# 1. Enter the frontend directory
-cd frontend
+cd ../frontend
 
-# 2. Configure environment variables
+# Configure environment variables
 cp .env.example .env
-# Edit .env: set VITE_API_URL=http://localhost:8000
+# Set VITE_API_URL=http://localhost:8000
 
-# 3. Install Node dependencies
+# Install dependencies
 npm install
 
-# 4. Start the development server
+# Start development server
 npm run dev
 ```
 
-The app will be available at **http://localhost:5173**
-
-Other npm scripts:
-
-| Command | Description |
-|---|---|
-| `npm run build` | Production build (outputs to `dist/`) |
-| `npm run preview` | Preview the production build locally |
-| `npm run lint` | Run ESLint |
-| `npm test` | Run Vitest unit tests |
-| `npm run test:watch` | Run Vitest in watch mode |
+The frontend application will be running at [http://localhost:5173](http://localhost:5173).
 
 ---
 
 ## Environment Variables
 
-### Backend (`backend/.env`)
+### Backend Configuration (`backend/.env`)
 
-```env
-# ── App Security (Phase 0 + Phase 3 RBAC hardening — see Remediation_Plan.md) ──
-API_KEY_ADMIN=                                  # Enroll/delete persons, CSV export, /debug-* endpoints
-API_KEY_OPERATOR=                               # Create/end sessions, mark attendance (admin key also works here)
-API_KEY=                                        # Legacy Phase 0 var, still honored as an additional admin key
+```ini
+# ── Identity & Access Security ───────────────────────────────────────────────
+# Secret key used for signing JWT access tokens (Minimum 32 random characters in production)
+JWT_SECRET=your-secure-random-jwt-secret-string-min-32-chars
+JWT_EXPIRY_HOURS=12
+
+# Shared-secret API keys (Optional fallback; supports comma-separated rotation lists)
+API_KEY_ADMIN=admin-secret-key-1
+API_KEY_OPERATOR=operator-secret-key-1
+API_KEY=legacy-admin-key
 
 # ── MongoDB Atlas ─────────────────────────────────────────────────────────────
-MONGODB_URL=mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
-MONGODB_DB_NAME=attendance_db                   # Default: attendance_db
+MONGODB_URL=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+MONGODB_DB_NAME=attendance_db
 
-# ── Microsoft Azure Blob Storage (optional) ────────────────────────────────────
+# ── Azure Blob Storage (Optional archival) ────────────────────────────────────
 AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
-AZURE_BLOB_CONTAINER=attendance-photos          # Auto-created on first enroll
+AZURE_BLOB_CONTAINER=attendance-photos
 
-# ── Face Recognition Settings ─────────────────────────────────────────────────
-MIN_CONFIDENCE=0.40                             # Minimum cosine similarity to accept a match (0.1–1.0)
-DUPLICATE_THRESHOLD=0.45                        # Similarity above which a new enrollment is rejected as duplicate
+# ── Face Recognition Thresholds ──────────────────────────────────────────────
+MIN_CONFIDENCE=0.40          # Range 0.10 - 1.00 (Raise to 0.60+ for high-security environments)
+DUPLICATE_THRESHOLD=0.45     # Range 0.10 - 1.00 (Must be >= MIN_CONFIDENCE)
 
-# ── App Settings ──────────────────────────────────────────────────────────────
+# ── CORS & Network Security ──────────────────────────────────────────────────
+# Comma-separated list of allowed origins. Wildcards (*) are rejected at startup.
 ALLOWED_ORIGINS=http://localhost:5173,https://your-frontend.vercel.app
 ```
 
-> **Note:** mutating/sensitive endpoints require an `X-API-Key` header
-> (role-separated as of the Phase 3 RBAC pass — operator vs admin keys, see
-> `backend/core/auth.py`), and the expensive face-recognition endpoints are
-> per-IP rate limited. `ALLOWED_ORIGINS` is validated at startup and the app
-> refuses to start if it ever resolves to a wildcard `*` (CORS +
-> credentialed requests). See `backend/README.md` and `Remediation_Plan.md`
-> for details — the frontend does not send the API key header yet, so calls
-> from the UI to protected endpoints will 401/503 until the frontend phase
-> is applied.
+### Frontend Configuration (`frontend/.env`)
 
-**Confidence thresholds explained:**
-
-| Variable | Default | Effect |
-|---|---|---|
-| `MIN_CONFIDENCE` | `0.40` | Lower = more lenient recognition (more false positives). Raise to `0.60`+ for high-security environments. |
-| `DUPLICATE_THRESHOLD` | `0.45` | Must be ≥ `MIN_CONFIDENCE`. Lower = stricter duplicate detection. |
-
-### Frontend (`frontend/.env`)
-
-```env
-# URL of the running FastAPI backend
+```ini
 VITE_API_URL=http://localhost:8000
-# Production example:
-# VITE_API_URL=https://your-backend.onrender.com
+# Optional legacy fallback key if not authenticating via username/password:
+VITE_API_KEY=
 ```
 
 ---
 
-## API Reference
+## API Reference Matrix
 
-> **Auth note:** Enroll, delete-person, create/end-session, mark-attendance, CSV
-> export, and the `/debug-*` endpoints now require an `X-API-Key` header (Phase 0
-> hardening). See `backend/README.md` for the full protected-endpoint list and
-> rate limits.
+All protected endpoints accept either `Authorization: Bearer <JWT>` or `X-API-Key: <key>`. Admin credentials satisfy both operator and admin permissions.
 
-### Health
+### 🔑 Authentication (`/api/auth`)
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/` | Returns `{"status": "ok"}` |
-| GET | `/health` | Returns `{"status": "healthy"}` |
+| Method | Endpoint | Required Role | Rate Limit | Description |
+|---|---|---|---|---|
+| `POST` | `/api/auth/login` | **Public** | - | Verify credentials and receive a signed JWT token. |
+| `POST` | `/api/auth/register` | **Admin** | - | Provision a new operator or admin user. |
+| `GET` | `/api/auth/me` | **Operator** | - | Retrieve profile details of the authenticated identity. |
 
-### Dashboard
+### 👤 Persons & Biometrics (`/api/persons`)
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/dashboard/metrics` | `{ total_enrolled, sessions_today, present_today, attendance_rate }` |
-| GET | `/api/dashboard/activity` | Latest 8 attendance events |
+| Method | Endpoint | Required Role | Rate Limit | Description |
+|---|---|---|---|---|
+| `GET` | `/api/persons` | **Admin** | - | List all active enrolled persons with metadata. |
+| `GET` | `/api/persons/{id}` | **Admin** | - | Fetch detailed profile for a specific person. |
+| `POST` | `/api/persons/enroll` | **Admin** | `10/min` | Multi-image enrollment with automatic quality filters and compensating rollback. |
+| `DELETE`| `/api/persons/{id}` | **Admin** | - | Soft-delete a person, preserving historic attendance records. |
+| `GET` | `/api/persons/debug-encodings` | **Admin** | - | Diagnostic report listing persons missing biometric vectors. |
 
-### Persons
+### 📅 Sessions (`/api/sessions`)
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/persons` | List all active enrolled persons |
-| GET | `/api/persons/{id}` | Get a single person by ID |
-| POST | `/api/persons/enroll` | Enroll new person — `multipart/form-data`: `name`, `email?`, `department?`, `photos[]` |
-| DELETE | `/api/persons/{id}` | Soft-delete person (keeps attendance history) |
-| GET | `/api/persons/debug-encodings` | Diagnostic: persons in DB without face encodings |
-| GET | `/api/persons/debug-azure` | Diagnostic: validate Azure/MongoDB config |
+| Method | Endpoint | Required Role | Rate Limit | Description |
+|---|---|---|---|---|
+| `GET` | `/api/sessions` | **Operator** | - | Query sessions with optional `?active=true` filter. |
+| `GET` | `/api/sessions/{id}` | **Operator** | - | Fetch single session metadata by ObjectId. |
+| `POST` | `/api/sessions` | **Operator** | - | Create a new attendance session. |
+| `PATCH`| `/api/sessions/{id}/end` | **Operator** | - | Terminate an active session and timestamp its conclusion. |
 
-**Enroll example (curl):**
-```bash
-curl -X POST http://localhost:8000/api/persons/enroll \
-  -F "name=Jashan Singh" \
-  -F "department=Engineering" \
-  -F "email=jashan@example.com" \
-  -F "photos=@photo1.jpg" \
-  -F "photos=@photo2.jpg"
-```
+### 📸 Attendance Operations (`/api/attendance`)
 
-### Sessions
+| Method | Endpoint | Required Role | Rate Limit | Description |
+|---|---|---|---|---|
+| `POST` | `/api/attendance/identify` | **Operator** | `20/min` | Identify faces in a frame without recording attendance. |
+| `POST` | `/api/attendance/mark/{session_id}` | **Operator** | `20/min` | Identify all faces and insert idempotent attendance records. |
+| `GET` | `/api/attendance` | **Operator** | - | List records filtered by `session_id`, `person_id`, or `date`. |
+| `GET` | `/api/attendance/export/csv` | **Admin** | - | Export attendance records to a downloadable CSV stream. |
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/sessions` | List sessions. Query: `?active=true` for active only |
-| POST | `/api/sessions` | Create session — `{ "label": "CS101 Lecture", "department": "CS" }` |
-| PATCH | `/api/sessions/{id}/end` | End an active session (sets `ended_at`, `is_active: false`) |
+### 📊 Dashboard & Reports
 
-### Attendance
+| Method | Endpoint | Required Role | Description |
+|---|---|---|---|
+| `GET` | `/api/dashboard/metrics` | **Operator** | Total enrolled, active sessions, attendance rates today. |
+| `GET` | `/api/dashboard/activity` | **Operator** | Feed of the 8 most recent attendance events. |
+| `GET` | `/api/reports/daily` | **Admin** | Day-by-day attendance trends over `?days=N` (default: 30). |
+| `GET` | `/api/reports/persons` | **Admin** | Per-person attendance metrics and defaulter flags (<75%). |
+| `GET` | `/api/reports/heatmap` | **Admin** | Matrix of individual presence over `?days=N` (default: 14). |
 
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/attendance/identify` | Identify faces in a frame (no DB write). Query: `?confidence=0.4` |
-| POST | `/api/attendance/mark/{session_id}` | Identify faces + write attendance records |
-| GET | `/api/attendance` | List records. Query: `?session_id=`, `?person_id=`, `?date=YYYY-MM-DD`, `?status=present` |
-| GET | `/api/attendance/export/csv` | Download CSV. Query: `?session_id=`, `?date=YYYY-MM-DD` |
+---
 
-**Mark attendance example (curl):**
-```bash
-curl -X POST "http://localhost:8000/api/attendance/mark/SESSION_ID?confidence=0.45" \
-  -F "frame=@webcam_frame.jpg"
-```
+## Database Schema & Indexes
 
-**Response:**
+### Collection Schemas
+
+#### 1. `users`
 ```json
 {
-  "session_id": "664abc123...",
-  "identified": [
-    {
-      "azure_person_id": "uuid-...",
-      "name": "Jashan Singh",
-      "confidence": 0.87,
-      "face_box": { "top": 120, "left": 80, "width": 200, "height": 200 },
-      "already_marked": false
-    }
-  ],
-  "new_records": 1
+  "_id": "ObjectId",
+  "username": "jashan_admin",
+  "password_hash": "scrypt$16384$8$1$salt$derived_key",
+  "role": "admin",
+  "is_active": true,
+  "created_at": "2026-09-12T13:00:00Z"
 }
 ```
 
-### Reports
-
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/reports/daily` | Daily attendance rate. Query: `?days=30` |
-| GET | `/api/reports/persons` | Per-person stats + defaulters list. Query: `?days=30` |
-| GET | `/api/reports/heatmap` | Person × date matrix. Query: `?days=14` |
-
----
-
-## Frontend Pages
-
-### `/` — Dashboard
-Displays four KPI metric cards (total enrolled, sessions today, present today, attendance rate) and a live activity feed showing the most recent 8 attendance events with person name, department, session, confidence score, and timestamp.
-
-### `/live-attendance` — Live Attendance
-Allows the user to:
-1. Select or create an active session
-2. Upload a camera frame or image file
-3. View identified faces with bounding boxes and confidence scores
-4. Mark attendance for the current session
-
-### `/enroll` — Enroll Person
-Multi-step form to register a new person. Fields: name (required), email, department. Photo upload accepts up to 10 images via drag-and-drop or file picker. Displays a preview grid and submits as `multipart/form-data`.
-
-### `/records` — Attendance Records
-Searchable, sortable table of all attendance records with filters for date, session, person, and status. Includes a **Download CSV** button that triggers the export endpoint.
-
-### `/reports` — Analytics Reports
-Three visualisations rendered with Recharts:
-- **Daily Attendance Trend** — line chart over last 30 days
-- **Per-Person Attendance Rate** — bar chart sorted by rate, red bars for defaulters (<75%)
-- **Attendance Heatmap** — calendar grid (person × date) for the last 14 days
-
----
-
-## Database Schema
-
-MongoDB collections with their key fields:
-
-### `persons`
+#### 2. `persons`
 ```json
 {
-  "_id": "uuid-string",           // InsightFace-generated UUID
-  "name": "Jashan Singh",
+  "_id": "c7f99147-36e6-42d1-9430-c3d3957bf9e1",
+  "name": "Jashan Randhawa",
   "email": "jashan@example.com",
   "department": "Engineering",
-  "photo_url": "https://blob.core.windows.net/...",
-  "enrolled_at": "2025-04-11T10:00:00",
+  "photo_url": "https://storage.blob.core.windows.net/photos/...",
+  "enrolled_at": "2026-09-12T13:05:00Z",
+  "enrolled_by": "66e2c...",
   "is_active": true
 }
 ```
 
-### `face_encodings`
+#### 3. `face_encodings`
 ```json
 {
-  "_id": "uuid-string",           // Same as persons._id
-  "encoding": [0.12, -0.34, ...]  // 512-dim float array
+  "_id": "c7f99147-36e6-42d1-9430-c3d3957bf9e1",
+  "name": "Jashan Randhawa",
+  "embeddings": [
+    [0.0421, -0.0125, 0.0894, "... 512 float values ..."]
+  ]
 }
 ```
 
-### `sessions`
+#### 4. `sessions`
 ```json
 {
-  "_id": "ObjectId",
-  "label": "CS101 Lecture — Week 3",
-  "department": "CS",
-  "started_at": "2025-04-11T09:00:00",
+  "_id": "ObjectId('66e2d1487f98...')",
+  "label": "Engineering All-Hands — Week 37",
+  "department": "Engineering",
+  "started_at": "2026-09-12T14:00:00Z",
   "ended_at": null,
   "is_active": true
 }
 ```
 
-### `attendance`
+#### 5. `attendance`
 ```json
 {
-  "_id": "ObjectId",
-  "person_id": "uuid-string",     // FK → persons._id
-  "session_id": "ObjectId-string",// FK → sessions._id (stored as string)
-  "marked_at": "2025-04-11T09:05:32",
-  "confidence": 0.87,
-  "status": "present"
+  "_id": "ObjectId('66e2d1998a12...')",
+  "person_id": "c7f99147-36e6-42d1-9430-c3d3957bf9e1",
+  "session_id": "ObjectId('66e2d1487f98...')",
+  "marked_at": "2026-09-12T14:02:18Z",
+  "confidence": 0.8942,
+  "status": "present",
+  "marked_by": "66e2c..."
 }
 ```
 
-**Indexes:**
-- `attendance`: compound unique on `(person_id, session_id)` → prevents double-marking
-- `persons`: case-insensitive unique on `name` (active persons only, partial index)
-- `sessions`: on `(is_active)` and `(started_at DESC)`
-- `attendance`: on `(marked_at DESC)` and `(status)`
+### Database Indexes
+
+- **`users`**: Unique index on `username`.
+- **`persons`**: Ascending index on `name`, `is_active`. Case-insensitive unique partial index on `name` where `is_active: true`.
+- **`sessions`**: Index on `is_active` and `started_at` descending.
+- **`attendance`**: **Compound unique index** on `(person_id, session_id)` (guarantees idempotency); indexes on `marked_at` descending and `status`.
+- **`face_encodings`**: Index on `name`.
 
 ---
 
-## Face Recognition Pipeline
+## Face Recognition & Quality Pipeline
 
 ```
-Enrollment                              Identification
-──────────                              ──────────────
-Upload photos (1–10)                    Submit frame image
-       │                                       │
-       ▼                                       ▼
-CLAHE preprocessing              CLAHE preprocessing
-(equalise contrast)              (equalise contrast)
-       │                                       │
-       ▼                                       ▼
-InsightFace detect faces         InsightFace detect all faces
-       │                                       │
-       ▼                                       ▼
-Extract 512-dim embedding        Extract 512-dim embeddings
-       │                                       │
-       ▼                                       ▼
-Average across all photos        For each detected face:
-       │                           cosine_similarity(face, all enrolled)
-       ▼                                       │
-Duplicate check:                 Pick best match
-  similarity > DUPLICATE_THRESHOLD?    │
-  → reject with 409              confidence ≥ MIN_CONFIDENCE?
-       │                           → IdentifyResult
-       ▼                           → upsert attendance record
-Store encoding in MongoDB
-Store photo in Azure Blob
-Save person in MongoDB
+[Raw Photo Upload] ──> [Format & Pillow Byte Validation]
+                             │
+                             ▼
+              [Pixel Dimension Check (<= 6000x6000px)]
+                             │
+                             ▼
+              [CLAHE Preprocessing (LAB Color Equalization)]
+                             │
+                             ▼
+              [InsightFace Detection (det_thresh >= 0.30)]
+                             │
+                             ▼
+              [Face Quality Acceptance Gate]
+                 ├── Detection confidence >= 0.60
+                 ├── Bounding box >= 60x60 pixels
+                 ├── Center margin clearance >= 5% from edges
+                 └── Keypoint eye distance >= 20% width (Pose Angle)
+                             │
+                             ▼
+              [Duplicate Face Similarity Gate]
+                 └── Cosine Similarity < DUPLICATE_THRESHOLD (0.45)
+                             │
+                             ▼
+              [512-d Feature Extraction & Storage]
 ```
 
 ---
 
-## Deployment
+## Testing Suite
 
-> **Disaster recovery:** before deploying with real data, read
-> [`docs/DISASTER_RECOVERY.md`](docs/DISASTER_RECOVERY.md) — it covers
-> verifying MongoDB Atlas backups and exactly what to do (and what's *not*
-> recoverable) if a collection is lost, especially `face_encodings`.
-
-### Docker
+The repository contains an exhaustive test suite of **63 unit and integration tests** verifying security policies, error responses, database idempotency, image safety, and facial comparison math. Tests run without requiring an active database or GPU by utilizing deterministic in-memory fixtures.
 
 ```bash
-# Build the image (InsightFace model is downloaded and cached at build time)
-docker build -t attendance-backend ./backend
+cd backend
 
-# Run the container
-docker run -p 8000:8000 \
-  --env-file ./backend/.env \
-  attendance-backend
+# Run the complete test suite
+pytest -v
+
+# Run specific domain test suites
+pytest tests/test_user_jwt_auth.py          # JWT, passwords, RBAC
+pytest tests/test_session_id_objectid.py    # ObjectId standardization & lookups
+pytest tests/test_single_mongo_client.py    # Motor consolidation checks
+pytest tests/test_attendance_idempotency.py # Double-mark prevention
+pytest tests/test_enrollment_rollback.py    # Compensating transactions
+pytest tests/test_validation.py             # Buffer & pixel limit checks
 ```
 
-The Dockerfile pre-downloads the `buffalo_sc` model at build time, so container cold starts are fast (~2–3 seconds instead of 60+ seconds).
+```text
+============================== test session starts ==============================
+collected 63 items
 
-### Render
+tests/test_attendance_idempotency.py .....                                [  7%]
+tests/test_auth_roles.py ..............                                   [ 30%]
+tests/test_cleanup_items.py ....                                          [ 36%]
+tests/test_cors_config.py ....                                            [ 42%]
+tests/test_duplicate_detection.py .....                                   [ 50%]
+tests/test_enrollment_rollback.py ...                                     [ 55%]
+tests/test_face_matching.py .............                                 [ 76%]
+tests/test_session_id_objectid.py ..                                      [ 79%]
+tests/test_single_mongo_client.py ...                                     [ 84%]
+tests/test_user_jwt_auth.py ......                                        [ 93%]
+tests/test_validation.py ....                                             [100%]
 
-1. **Backend** — Deploy as a **Web Service**:
-   - Runtime: Docker (uses the `backend/Dockerfile`)
-   - Set all backend env vars in Render → Environment tab
-   - Health check path: `/health`
+============================== 63 passed in 2.39s ===============================
+```
 
-2. **Frontend** — Deploy as a **Static Site**:
-   - Build command: `npm run build`
-   - Publish directory: `dist`
-   - Set `VITE_API_URL` to the backend's Render URL
+---
+
+## Operations & Scaling Triggers
+
+Biometric embeddings are currently compared using in-memory vectorized cosine similarity. To balance operational simplicity with scalability, the following trigger thresholds are monitored via structured performance logs (`metrics_logger`):
+
+- **Trigger Threshold 1**: Active enrolled count exceeds **500 persons**.
+- **Trigger Threshold 2**: Observed 95th-percentile (`p95`) identification latency exceeds **2.0 seconds**.
+
+### Scaling Escalation Roadmap
+1. **Tier 1 (In-Process Cache)**: Cache the normalized embedding matrix in-process as a contiguous NumPy array, invalidated upon enroll/delete events.
+2. **Tier 2 (Vector Search Index)**: Migrate matching logic to **MongoDB Atlas Vector Search** (HNSW index) or dedicated vector store (FAISS).
+
+---
+
+## Deployment Guide
+
+### Docker Container
+
+The backend includes a production-ready `Dockerfile` that pre-compiles native extensions and downloads the InsightFace weights at build time for instant cold starts:
+
+```bash
+# Build the Docker image
+docker build -t smart-attend-backend ./backend
+
+# Run the container
+docker run -d \
+  --name smart-attend \
+  -p 8000:8000 \
+  --env-file ./backend/.env \
+  smart-attend-backend
+```
+
+### Render + Vercel Deployment
+
+1. **Backend on Render (Web Service)**:
+   - Environment: `Docker` (points to `backend/Dockerfile`).
+   - Add environment variables in the Render Dashboard.
+   - Set Health Check Path: `/health`.
+
+2. **Frontend on Vercel**:
+   - Set Root Directory to `frontend`.
+   - Build Command: `npm run build`.
+   - Output Directory: `dist`.
+   - Set `VITE_API_URL` to your Render backend URL.
 
 ### Azure App Service
 
 ```bash
-# 1. Build and push to Azure Container Registry
-az acr build --registry <your-acr> --image attendance-backend:latest ./backend
+# Push container to Azure Container Registry
+az acr build --registry <acr-name> --image smart-attend:latest ./backend
 
-# 2. Create App Service (Linux, Docker)
+# Create web app running the container
 az webapp create \
-  --resource-group <rg> \
-  --plan <plan> \
-  --name attendance-backend \
-  --deployment-container-image-name <your-acr>.azurecr.io/attendance-backend:latest
-
-# 3. Set environment variables
-az webapp config appsettings set \
-  --name attendance-backend \
-  --resource-group <rg> \
-  --settings MONGODB_URL="..." AZURE_STORAGE_CONNECTION_STRING="..."
-```
-
-### Vercel (Frontend Only)
-
-The `frontend/vercel.json` includes SPA routing rewrites. Deploy directly from the `frontend/` directory:
-```bash
-cd frontend
-vercel --prod
+  --resource-group <resource-group> \
+  --plan <app-service-plan> \
+  --name smart-attend-backend \
+  --deployment-container-image-name <acr-name>.azurecr.io/smart-attend:latest
 ```
 
 ---
 
-## Configuration Tuning
+## Troubleshooting & FAQ
 
-| Scenario | Recommendation |
-|---|---|
-| High-security environment | Set `MIN_CONFIDENCE=0.65`, `DUPLICATE_THRESHOLD=0.55` |
-| Dim lighting / poor cameras | Set `MIN_CONFIDENCE=0.35` and ensure CLAHE is active |
-| Many similar-looking people | Lower `DUPLICATE_THRESHOLD=0.40` |
-| Large group photos | Use high-resolution images; detection works best at face width ≥ 80px |
-| Slow cold starts | Use Docker (model pre-baked) or increase Render plan memory |
+#### `401 Unauthorized: Missing or invalid API key or Bearer token`
+Ensure your request header carries `Authorization: Bearer <your_jwt_token>` or `X-API-Key: <your_key>`. For read endpoints, verify that your user account has at least the `operator` role (or `admin` for `/reports` and `/persons`).
 
----
+#### `400 Bad Request: Image dimensions exceed the maximum allowed (6000x6000)`
+The uploaded frame or photo exceeds pixel boundaries designed to prevent memory decompression denial-of-service. Resize or downscale images before submitting.
 
-## Troubleshooting
+#### `409 Conflict: This face is already enrolled`
+The duplicate check detected that the uploaded face is already associated with an existing enrolled profile (cosine similarity exceeded `DUPLICATE_THRESHOLD`). Delete the existing person record first if re-enrollment is necessary.
 
-### `InsightFace model not found` on startup
-The `buffalo_sc` model (~300 MB) is downloaded to `~/.insightface/models/` on first run. Ensure network access or use the Docker image (model baked in).
-
-### `MONGODB_URL not set — using localhost`
-The backend falls back to `mongodb://localhost:27017`. Set `MONGODB_URL` in your `.env`.
-
-### Person not recognised despite being enrolled
-Run `GET /api/persons/debug-encodings` — if the person appears in the `missing` list, their face encoding was not saved correctly. Delete and re-enroll with clearer photos (good lighting, face centred, no occlusion).
-
-### `409 Duplicate person detected` on enrollment
-The new photos are too similar to an existing person (similarity > `DUPLICATE_THRESHOLD`). Either delete the existing person first, or raise the threshold in `.env`.
-
-### CORS errors in the browser
-Add your frontend's URL to `ALLOWED_ORIGINS` in `backend/.env`:
-```env
-ALLOWED_ORIGINS=http://localhost:5173,https://your-frontend.vercel.app
-```
-
-### `Azure Blob Storage` container not found
-The container named `attendance-photos` is created automatically on the first enrollment call. Ensure the `AZURE_STORAGE_CONNECTION_STRING` is correct and the storage account exists.
+#### `503 Service Unavailable: Server misconfiguration`
+Occurs if no admin API key and no JWT secrets are defined in the environment. Set `JWT_SECRET` and `API_KEY_ADMIN` in `.env`.
 
 ---
 
 ## License
 
-This project is for educational and portfolio purposes.
-
----
-
-*Generated from source analysis of AI-Attendance-System-main — April 2026*
+This project is licensed under the MIT License. Developed for automated attendance tracking and portfolio demonstrations.
