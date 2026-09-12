@@ -11,7 +11,7 @@ interface MetricCardProps {
 
 const MetricCard = ({ title, value, icon: Icon, trend, trendUp }: MetricCardProps) => {
   return (
-    <Card className="border-none shadow-sm">
+    <Card className="border border-border/60 shadow-sm card-hover-lift overflow-hidden">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div>

@@ -402,6 +402,10 @@ const LiveAttendance: React.FC = () => {
                   </div>
                 )}
 
+                {isStreaming && (scanning || autoScan) && (
+                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_#22d3ee] scanner-laser-beam pointer-events-none z-10" />
+                )}
+
                 {!isStreaming && (
                   <div className="text-center space-y-3 p-6">
                     <div className="w-14 h-14 rounded-2xl bg-muted/20 flex items-center justify-center mx-auto text-muted-foreground/60">
@@ -446,7 +450,7 @@ const LiveAttendance: React.FC = () => {
                 recognized.map((p) => (
                   <div
                     key={p.azure_person_id}
-                    className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/50"
+                    className="animate-enter-subtle flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted/70 transition-colors"
                   >
                     <div className="min-w-0 pr-2">
                       <p className="text-sm font-semibold truncate">{p.name}</p>
