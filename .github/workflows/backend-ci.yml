@@ -92,7 +92,7 @@ jobs:
         run: |
           pip install fastapi uvicorn slowapi motor pymongo python-dotenv \
                       "pydantic[email]" python-multipart opencv-python-headless \
-                      numpy Pillow azure-storage-blob httpx
+                      numpy Pillow azure-storage-blob httpx pyjwt
           pip install -r backend/requirements-dev.txt
 
       - name: Run backend unit tests
