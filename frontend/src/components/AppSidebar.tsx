@@ -54,10 +54,10 @@ const NavLinks: React.FC<{ onNavigate?: () => void; role: "admin" | "operator" |
             key={item.to}
             to={item.to}
             onClick={onNavigate}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all min-h-[44px] ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
               isActive
-                ? "bg-primary/15 text-primary font-semibold"
-                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-border/50"
+                ? "bg-primary/15 text-primary font-semibold border border-primary/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]"
+                : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-border/50 border border-transparent"
             }`}
           >
             <item.icon className="w-4 h-4 shrink-0" />
@@ -80,11 +80,11 @@ const UserProfileSection: React.FC<{ onNavigate?: () => void }> = ({ onNavigate 
   };
 
   return (
-    <div className="p-3 border-t border-sidebar-border">
+    <div className="p-3 border-t border-sidebar-border/80">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-sidebar-border/50 text-left transition-colors min-h-[44px]">
-            <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+          <button className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-sidebar-border/50 text-left transition-colors min-h-[44px]">
+            <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 border border-primary/25">
               <UserCircle className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -123,14 +123,14 @@ const UserProfileSection: React.FC<{ onNavigate?: () => void }> = ({ onNavigate 
 };
 
 const SidebarHeader: React.FC = () => (
-  <div className="p-5 border-b border-sidebar-border">
+  <div className="p-5 border-b border-sidebar-border/80">
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center shrink-0 shadow-sm">
+      <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shrink-0 shadow-sm border border-white/20">
         <Camera className="w-5 h-5 text-primary-foreground" />
       </div>
       <div>
-        <h1 className="text-base font-bold text-sidebar-foreground">Smart Attend</h1>
-        <p className="text-xs text-sidebar-foreground/50">Face Recognition System</p>
+        <h1 className="text-base font-bold text-sidebar-foreground tracking-tight">Smart Attend</h1>
+        <p className="text-[11px] font-medium tracking-wide text-sidebar-foreground/50 uppercase">Face Recognition</p>
       </div>
     </div>
   </div>
@@ -181,7 +181,7 @@ const AppSidebar: React.FC = () => {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 min-h-screen gradient-sidebar flex-col shrink-0 border-r border-sidebar-border sticky top-0 h-screen">
+      <aside className="hidden md:flex w-64 min-h-screen gradient-sidebar flex-col shrink-0 border-r border-sidebar-border/80 shadow-lg sticky top-0 h-screen">
         <SidebarHeader />
         <NavLinks role={role} />
         <UserProfileSection />
