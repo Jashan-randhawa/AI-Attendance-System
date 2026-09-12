@@ -17,9 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip uninstall -y opencv-python && \
-    pip install --no-cache-dir "opencv-python-headless>=4.9.0"
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download the InsightFace buffalo_sc model into the image layer.
 # This runs once at build time, so cold starts don't waste ~60s downloading it.
