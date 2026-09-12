@@ -2,15 +2,24 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# g++ needed for insightface's Cython extension + runtime libs
+# System libraries for insightface compilation + OpenCV runtime (libxcb, libgl1, etc.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     libgomp1 \
     libglib2.0-0 \
+    libgl1 \
+    libxcb1 \
+    libx11-6 \
+    libxext6 \
+    libxrender1 \
+    libsm6 \
+    libice6 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip uninstall -y opencv-python && \
+    pip install --no-cache-dir "opencv-python-headless>=4.9.0"
 
 # Pre-download the InsightFace buffalo_sc model into the image layer.
 # This runs once at build time, so cold starts don't waste ~60s downloading it.
