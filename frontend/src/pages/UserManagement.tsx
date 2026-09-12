@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,29 +63,26 @@ const UserManagement: React.FC = () => {
   return (
     <AppLayout>
       <div className="space-y-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">User Account Management</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Control access roles, operators, and administrator accounts
-            </p>
-          </div>
-
-          <Dialog open={openCreate} onOpenChange={setOpenCreate}>
-            <DialogTrigger asChild>
-              <Button className="shadow-sm gradient-primary text-white btn-tactile">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Add User Account
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <form onSubmit={handleCreate}>
-                <DialogHeader>
-                  <DialogTitle>Register New User</DialogTitle>
-                  <DialogDescription>
-                    Create a new operator or administrator login. Passwords must be at least 6 characters.
-                  </DialogDescription>
-                </DialogHeader>
+        <PageHeader
+          badge="Access Control"
+          title="User Account Management"
+          description="Control access roles, operator credentials, and administrator accounts."
+          actions={
+            <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+              <DialogTrigger asChild>
+                <Button className="shadow-sm gradient-primary text-white btn-tactile">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add User Account
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <form onSubmit={handleCreate}>
+                  <DialogHeader>
+                    <DialogTitle>Register New User</DialogTitle>
+                    <DialogDescription>
+                      Create a new operator or administrator login. Passwords must be at least 6 characters.
+                    </DialogDescription>
+                  </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username *</Label>
@@ -130,8 +128,9 @@ const UserManagement: React.FC = () => {
                 </DialogFooter>
               </form>
             </DialogContent>
-          </Dialog>
-        </div>
+            </Dialog>
+          }
+        />
 
         <Card className="border-border/60 shadow-sm">
           <CardHeader>

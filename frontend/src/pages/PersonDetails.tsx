@@ -68,7 +68,7 @@ const PersonDetails: React.FC = () => {
   return (
     <AppLayout>
       <div className="space-y-8 max-w-7xl mx-auto">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pb-6 mb-8 border-b border-border/80">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/people">
               <ArrowLeft className="w-4 h-4 mr-1.5" />

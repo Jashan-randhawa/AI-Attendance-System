@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,21 +74,19 @@ const People: React.FC = () => {
   return (
     <AppLayout>
       <div className="space-y-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Enrolled People Directory</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Manage registered students, staff, and their biometric face encodings
-            </p>
-          </div>
-
-          <Button asChild className="shadow-sm gradient-primary text-white btn-tactile">
-            <Link to="/enroll">
-              <UserPlus className="w-4 h-4 mr-2" />
-              Enroll Person
-            </Link>
-          </Button>
-        </div>
+        <PageHeader
+          badge="Directory Registry"
+          title="Enrolled People Directory"
+          description="Manage registered students, staff, and their biometric face encodings."
+          actions={
+            <Button asChild className="shadow-sm gradient-primary text-white btn-tactile">
+              <Link to="/enroll">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Enroll Person
+              </Link>
+            </Button>
+          }
+        />
 
         <Card className="border-border/60 shadow-sm">
           <CardContent className="p-4 sm:p-6">

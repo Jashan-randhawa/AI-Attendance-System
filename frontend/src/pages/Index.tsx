@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import { Link } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
 import MetricCard from "@/components/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,27 +72,25 @@ const Dashboard: React.FC = () => {
 
   return (
     <AppLayout>
-      <div ref={dashboardRef} className="space-y-8 max-w-7xl mx-auto">
-        <div className="gsap-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <span className="text-[11px] font-semibold text-emerald-600 tracking-wider uppercase font-sans">Biometric Operations</span>
-            <h1 className="font-display text-3xl sm:text-4xl text-foreground tracking-tight mt-0.5">Dashboard Overview</h1>
-            <p className="text-muted-foreground text-sm font-sans mt-1">
-              Live biometric surveillance & attendance operational status
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="btn-tactile bg-card border-border/80 text-foreground shadow-xs" asChild>
-              <Link to="/reports">View Analytics</Link>
-            </Button>
-            <Button size="sm" className="gradient-primary text-white shadow-sm btn-tactile" asChild>
-              <Link to="/sessions">
-                <Play className="w-3.5 h-3.5 mr-1.5" /> Start Session
-              </Link>
-            </Button>
-          </div>
-        </div>
+      <div ref={dashboardRef} className="space-y-8">
+        <PageHeader
+          className="gsap-header"
+          badge="Biometric Operations"
+          title="Dashboard Overview"
+          description="Live biometric surveillance & attendance operational status"
+          actions={
+            <>
+              <Button variant="outline" size="sm" className="btn-tactile bg-card border-border/80 text-foreground shadow-xs" asChild>
+                <Link to="/reports">View Analytics</Link>
+              </Button>
+              <Button size="sm" className="gradient-primary text-white shadow-sm btn-tactile" asChild>
+                <Link to="/sessions">
+                  <Play className="w-3.5 h-3.5 mr-1.5" /> Start Session
+                </Link>
+              </Button>
+            </>
+          }
+        />
 
         {currentActiveSession && (
           <div className="atmospheric-hero p-5 rounded-2xl border border-emerald-500/30 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-enter-subtle shadow-md">

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -77,28 +78,27 @@ const Reports = () => {
   return (
     <AppLayout>
       <div ref={reportsContainerRef} className="space-y-8 max-w-7xl mx-auto">
-        <div className="gsap-reports-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Attendance Analytics & Reports</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Long-term trends, departmental analysis, and low-attendance alerts
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border border-border">
-            {[7, 30, 90].map((d) => (
-              <Button
-                key={d}
-                size="sm"
-                variant={days === d ? "default" : "ghost"}
-                className={`h-7 px-3 text-xs ${days === d ? "gradient-primary text-white font-semibold" : ""}`}
-                onClick={() => setDays(d)}
-              >
-                Last {d} Days
-              </Button>
-            ))}
-          </div>
-        </div>
+        <PageHeader
+          className="gsap-reports-header"
+          badge="Analytics & Insights"
+          title="Attendance Analytics & Reports"
+          description="Long-term trends, departmental analysis, and low-attendance alerts."
+          actions={
+            <div className="flex items-center gap-1.5 bg-secondary/70 p-1 rounded-xl border border-border/80">
+              {[7, 30, 90].map((d) => (
+                <Button
+                  key={d}
+                  size="sm"
+                  variant={days === d ? "default" : "ghost"}
+                  className={`h-7 px-3 text-xs ${days === d ? "gradient-primary text-white font-semibold" : ""}`}
+                  onClick={() => setDays(d)}
+                >
+                  Last {d} Days
+                </Button>
+              ))}
+            </div>
+          }
+        />
 
         {defaulters.length > 0 && (
           <div className="gsap-scroll-section p-4 rounded-xl border border-destructive/30 bg-destructive/10 flex items-start gap-3">

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,66 +73,64 @@ const Sessions: React.FC = () => {
   return (
     <AppLayout>
       <div className="space-y-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Attendance Sessions</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Manage class, lecture, or shift sessions for facial recognition
-            </p>
-          </div>
-
-          <Dialog open={openCreate} onOpenChange={setOpenCreate}>
-            <DialogTrigger asChild>
-              <Button className="shadow-sm gradient-primary text-white btn-tactile">
-                <Plus className="w-4 h-4 mr-2" />
-                New Session
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <form onSubmit={handleCreate}>
-                <DialogHeader>
-                  <DialogTitle>Create New Session</DialogTitle>
-                  <DialogDescription>
-                    Provide a name and optional department for the attendance session.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="session-label">Session Label *</Label>
-                    <Input
-                      id="session-label"
-                      placeholder="e.g. CS101 - Lecture 4 or Morning Shift"
-                      value={label}
-                      onChange={(e) => setLabel(e.target.value)}
-                      required
-                    />
+        <PageHeader
+          badge="Session Management"
+          title="Attendance Sessions"
+          description="Manage class, lecture, or shift sessions for facial recognition operations."
+          actions={
+            <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+              <DialogTrigger asChild>
+                <Button className="shadow-sm gradient-primary text-white btn-tactile">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Session
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <form onSubmit={handleCreate}>
+                  <DialogHeader>
+                    <DialogTitle>Create New Session</DialogTitle>
+                    <DialogDescription>
+                      Provide a name and optional department for the attendance session.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="session-label">Session Label *</Label>
+                      <Input
+                        id="session-label"
+                        placeholder="e.g. CS101 - Lecture 4 or Morning Shift"
+                        value={label}
+                        onChange={(e) => setLabel(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="session-dept">Department / Group (Optional)</Label>
+                      <Input
+                        id="session-dept"
+                        placeholder="e.g. Computer Science"
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="session-dept">Department / Group (Optional)</Label>
-                    <Input
-                      id="session-dept"
-                      placeholder="e.g. Computer Science"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setOpenCreate(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? "Creating..." : "Start Session"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpenCreate(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={createMutation.isPending}>
+                      {createMutation.isPending ? "Creating..." : "Create & Activate"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          }
+        />
 
         <div className="space-y-4">
           <div className="flex items-center gap-2">

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -308,36 +309,35 @@ const LiveAttendance: React.FC = () => {
   return (
     <AppLayout>
       <div ref={liveRef} className="space-y-6 max-w-7xl mx-auto">
-        <div className="gsap-live-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Live Attendance Scanner</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Face detection, identification, and automated attendance marking
-            </p>
-          </div>
-
-          {activeSession && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant={autoScan ? "default" : "outline"}
-                size="sm"
-                onClick={() => setAutoScan((v) => !v)}
-                disabled={!isStreaming}
-              >
-                <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${autoScan ? "animate-spin" : ""}`} />
-                {autoScan ? "Auto-Scanning Active" : "Enable Auto-Scan"}
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleEndSession}
-              >
-                <VideoOff className="w-3.5 h-3.5 mr-1.5" />
-                End Session
-              </Button>
-            </div>
-          )}
-        </div>
+        <PageHeader
+          className="gsap-live-header"
+          badge="Live Biometrics"
+          title="Live Attendance Scanner"
+          description="Face detection, identification, and automated attendance marking."
+          actions={
+            activeSession ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={autoScan ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAutoScan((v) => !v)}
+                  disabled={!isStreaming}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${autoScan ? "animate-spin" : ""}`} />
+                  {autoScan ? "Auto-Scanning Active" : "Enable Auto-Scan"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleEndSession}
+                >
+                  <VideoOff className="w-3.5 h-3.5 mr-1.5" />
+                  End Session
+                </Button>
+              </div>
+            ) : undefined
+          }
+        />
 
         {!activeSession ? (
           <Card className="gsap-live-control border-border/60 shadow-sm">

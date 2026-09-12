@@ -1,5 +1,6 @@
 import React from "react";
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,19 +27,17 @@ const SystemHealth: React.FC = () => {
   return (
     <AppLayout>
       <div className="space-y-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">System Health & Diagnostics</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Live configuration status, database connectivity, and biometric vector integrity
-            </p>
-          </div>
-
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh Diagnostics
-          </Button>
-        </div>
+        <PageHeader
+          badge="Infrastructure & Diagnostics"
+          title="System Health & Diagnostics"
+          description="Live configuration status, database connectivity, and biometric vector integrity."
+          actions={
+            <Button variant="outline" size="sm" onClick={handleRefresh} className="btn-tactile shadow-xs">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Diagnostics
+            </Button>
+          }
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="border-border/60 shadow-sm">

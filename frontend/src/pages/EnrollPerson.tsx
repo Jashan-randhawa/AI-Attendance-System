@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -208,13 +209,12 @@ const EnrollPerson = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-3xl">
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Enroll New Person</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Register a student or employee for face recognition
-          </p>
-        </div>
+      <div className="space-y-8 max-w-4xl">
+        <PageHeader
+          badge="Biometric Registration"
+          title="Enroll New Person"
+          description="Register a student or employee with high-accuracy biometric facial encodings."
+        />
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Person Details */}

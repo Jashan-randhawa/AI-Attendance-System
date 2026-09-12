@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
+import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -140,32 +141,31 @@ const Records = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-normal tracking-tight text-foreground">Attendance Records</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              {loading ? "Loading…" : `${filtered.length} record${filtered.length !== 1 ? "s" : ""} found`}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline" size="sm"
-              onClick={() => load(true)}
-              disabled={refreshing}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
-            </Button>
-            {role === "admin" && (
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="w-4 h-4 mr-2" /> Export CSV
+      <div className="space-y-8">
+        <PageHeader
+          badge="Audit Logs"
+          title="Attendance Records"
+          description={loading ? "Loading records archive…" : `${filtered.length} record${filtered.length !== 1 ? "s" : ""} found across active filters.`}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => load(true)}
+                disabled={refreshing}
+                className="btn-tactile shadow-xs"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                Refresh
               </Button>
-            )}
-          </div>
-        </div>
+              {role === "admin" && (
+                <Button variant="outline" size="sm" onClick={handleExport} className="btn-tactile shadow-xs">
+                  <Download className="w-4 h-4 mr-2" /> Export CSV
+                </Button>
+              )}
+            </>
+          }
+        />
 
         {/* Stat cards */}
         {!loading && (
