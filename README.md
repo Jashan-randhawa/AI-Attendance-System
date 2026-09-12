@@ -8,9 +8,12 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Motor%20Async-47A248.svg?style=flat&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![InsightFace](https://img.shields.io/badge/AI-InsightFace%20ONNX-FF6F00.svg?style=flat)](https://github.com/deepinsight/insightface)
 [![Tests](https://img.shields.io/badge/Tests-63%20Backend%20+%20Vitest%20Passed-brightgreen.svg?style=flat)](#testing)
+[![Documentation](https://img.shields.io/badge/Wiki-Comprehensive%20Docs-blueviolet.svg?style=flat)](wiki/Home.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](LICENSE)
 
 High-throughput, privacy-focused facial recognition attendance system featuring local neural inference with **InsightFace ONNX**, async persistence with **MongoDB Atlas (Motor)**, role-based access control (**per-user JWT + salted scrypt**), and a **React 18 + Vite** dashboard inspired by the **FitTrack** editorial design system.
+
+> 📖 **Full Engineering Wiki & Documentation**: Explore the [SmartAttend Wiki](wiki/Home.md) for deep dives into system architecture, neural vision pipelines, RBAC security, API reference, database indexes, and deployment guides.
 
 ---
 
