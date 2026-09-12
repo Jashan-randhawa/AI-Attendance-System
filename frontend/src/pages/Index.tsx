@@ -82,7 +82,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" className="btn-tactile bg-white border-border/80 text-foreground shadow-xs" asChild>
+            <Button variant="outline" size="sm" className="btn-tactile bg-card border-border/80 text-foreground shadow-xs" asChild>
               <Link to="/reports">View Analytics</Link>
             </Button>
             <Button size="sm" className="gradient-primary text-white shadow-sm btn-tactile" asChild>

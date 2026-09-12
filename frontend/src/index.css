@@ -68,6 +68,54 @@
     --shadow-premium-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.04);
     --inner-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
   }
+
+  .dark {
+    --background: 197 13% 9%;        /* Deep Ink #14181a */
+    --foreground: 48 18% 95%;        /* Parchment text #f5f5ee */
+
+    --card: 196 12% 13%;             /* Elevated dark surface #1c2224 */
+    --card-foreground: 48 18% 95%;
+
+    --popover: 196 12% 13%;
+    --popover-foreground: 48 18% 95%;
+
+    --primary: 160 84% 39%;          /* Emerald #10b981 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 191 11% 18%;        /* Slate-800 #2a3234 */
+    --secondary-foreground: 48 18% 95%;
+
+    --muted: 196 12% 14%;
+    --muted-foreground: 98 3% 58%;   /* Stone #8f948c */
+
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 12 51% 45%;       /* Muted Brick #a14a34 */
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 65% 49%;           /* Golden Hour Amber #c9932f */
+    --warning-foreground: 0 0% 100%;
+
+    --border: 191 11% 18%;           /* Dark hairline divider #252c2e */
+    --input: 191 11% 18%;
+    --ring: 160 84% 39%;
+
+    --sidebar-background: 200 14% 7%; /* Dark ground #101314 */
+    --sidebar-foreground: 48 18% 95%;
+    --sidebar-muted: 196 12% 12%;
+    --sidebar-border: 191 11% 15%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 160 84% 39%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-ring: 160 84% 39%;
+
+    --inner-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  }
 }
 
 @layer base {

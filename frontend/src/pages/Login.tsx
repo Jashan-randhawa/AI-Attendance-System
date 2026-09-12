@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/auth/AuthContext";
+import ThemeToggle from "@/components/ThemeToggle";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -86,7 +87,11 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div ref={containerRef} className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div ref={containerRef} className="flex min-h-screen items-center justify-center bg-background p-4 relative">
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle variant="icon" />
+      </div>
+
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center text-center space-y-3">
           <div className="gsap-login-logo brand-logo-mark w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg border border-emerald-500/30 overflow-hidden">

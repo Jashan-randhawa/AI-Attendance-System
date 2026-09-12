@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Camera, UserPlus, LayoutDashboard, ClipboardList, BarChart3,
-  Menu, X, Users, Calendar, ShieldCheck, Activity, LogOut, UserCircle
+  Menu, X, Users, Calendar, ShieldCheck, Activity, LogOut, UserCircle, Sun, Moon
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
+import { useTheme } from "@/theme/ThemeContext";
+import ThemeToggle from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -71,6 +73,7 @@ const NavLinks: React.FC<{ onNavigate?: () => void; role: "admin" | "operator" |
 
 const UserProfileSection: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
   const { user, role, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -80,7 +83,9 @@ const UserProfileSection: React.FC<{ onNavigate?: () => void }> = ({ onNavigate 
   };
 
   return (
-    <div className="p-3 border-t border-sidebar-border/80">
+    <div className="p-3 border-t border-sidebar-border/80 space-y-2">
+      <ThemeToggle variant="switch" />
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-sidebar-border/50 text-left transition-colors min-h-[44px]">
@@ -111,6 +116,11 @@ const UserProfileSection: React.FC<{ onNavigate?: () => void }> = ({ onNavigate 
             <p className="text-sm font-semibold">{user?.username}</p>
             <p className="text-xs text-muted-foreground capitalize">Role: {role}</p>
           </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
+            {theme === "dark" ? <Sun className="w-4 h-4 mr-2 text-amber-400" /> : <Moon className="w-4 h-4 mr-2 text-emerald-400" />}
+            <span>{theme === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme"}</span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
             <LogOut className="w-4 h-4 mr-2" />
@@ -168,6 +178,9 @@ const AppSidebar: React.FC = () => {
             </span>
           </div>
         </div>
+
+        {/* Quick theme toggle in mobile header */}
+        <ThemeToggle variant="icon" className="border-sidebar-border/80 bg-sidebar-muted text-sidebar-foreground" />
       </header>
 
       {/* Mobile backdrop */}
