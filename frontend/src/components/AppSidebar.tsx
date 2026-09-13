@@ -664,20 +664,6 @@ const AppSidebar: React.FC = () => {
           <LayoutDashboard className="w-5 h-5" />
           <span className="text-[10px] mt-1 tracking-tight">Dashboard</span>
         </button>
-
-        {/* More / Menu Drawer */}
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-colors min-h-[46px] cursor-pointer ${
-            mobileOpen
-              ? "text-emerald-400 font-semibold"
-              : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
-          }`}
-        >
-          <Menu className="w-5 h-5" />
-          <span className="text-[10px] mt-1 tracking-tight">More</span>
-        </button>
       </nav>
     </>
   );
