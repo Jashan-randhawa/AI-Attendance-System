@@ -77,7 +77,7 @@ const Reports = () => {
 
   return (
     <AppLayout>
-      <div ref={reportsContainerRef} className="space-y-8 max-w-7xl mx-auto">
+      <div ref={reportsContainerRef} className="space-y-8 w-full">
         <PageHeader
           className="gsap-reports-header"
           badge="Analytics & Insights"

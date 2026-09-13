@@ -73,7 +73,7 @@ const People: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-8 max-w-7xl mx-auto">
+      <div className="space-y-8 w-full">
         <PageHeader
           badge="Directory Registry"
           title="Enrolled People Directory"

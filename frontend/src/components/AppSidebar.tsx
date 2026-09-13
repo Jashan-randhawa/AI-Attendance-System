@@ -17,9 +17,12 @@ import {
   Moon,
   Pin,
   PinOff,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
 import { useTheme } from "@/theme/ThemeContext";
+import { useViewMode } from "@/context/ViewModeContext";
 import { Badge } from "@/components/ui/badge";
 
 interface NavItemConfig {
@@ -48,6 +51,7 @@ const AppSidebar: React.FC = () => {
   const location = useLocation();
   const { user, role, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { isFitScreen, isFullscreen, toggleFitScreen, toggleFullscreen } = useViewMode();
   const isLight = theme === "light";
 
   // Desktop hover & pin state (FitTrack design: 68px rail collapsed, 280px expanded on hover)
@@ -137,26 +141,43 @@ const AppSidebar: React.FC = () => {
           <div className="relative z-10 flex flex-col h-full justify-between overflow-x-hidden">
             {/* Top Section */}
             <div className="overflow-x-hidden">
-              {/* Row 0: Window Traffic Light Dots */}
+              {/* Row 0: Window Traffic Light Dots & Window Controls */}
               <div className="flex items-center h-7 w-full mb-1">
                 <div className="w-[68px] shrink-0 flex items-center justify-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] shadow-xs" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] shadow-xs" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-xs" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] shadow-xs" title="Close" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] shadow-xs" title="Minimize" />
+                  <button
+                    onClick={toggleFullscreen}
+                    title={isFullscreen ? "Exit Fullscreen (Esc / F11)" : "Fit Screen / Fullscreen (F11)"}
+                    aria-label="Toggle Fullscreen"
+                    className="w-2.5 h-2.5 rounded-full bg-[#10b981] hover:brightness-125 transition-all active:scale-90 cursor-pointer shadow-xs focus:outline-none"
+                  />
                 </div>
                 <div className="flex-1 min-w-0 flex items-center justify-between px-3">
                   <span className="text-[10px] font-bold text-sidebar-foreground/40 uppercase tracking-widest">
                     SmartAttend
                   </span>
-                  <button
-                    onClick={togglePin}
-                    title={isPinned ? "Unpin sidebar (auto-collapse)" : "Pin sidebar open"}
-                    className={`p-1 rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-muted/50 transition-colors cursor-pointer ${
-                      isPinned ? "text-emerald-400 bg-emerald-500/10" : ""
-                    }`}
-                  >
-                    {isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={toggleFitScreen}
+                      title={isFitScreen ? "Switch to Contained Width (1280px)" : "Fit Screen Width (Full View)"}
+                      aria-label="Toggle Fit Screen Width"
+                      className={`p-1 rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-muted/50 transition-colors cursor-pointer ${
+                        isFitScreen ? "text-emerald-400 bg-emerald-500/10" : ""
+                      }`}
+                    >
+                      {isFitScreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      onClick={togglePin}
+                      title={isPinned ? "Unpin sidebar (auto-collapse)" : "Pin sidebar open"}
+                      className={`p-1 rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-muted/50 transition-colors cursor-pointer ${
+                        isPinned ? "text-emerald-400 bg-emerald-500/10" : ""
+                      }`}
+                    >
+                      {isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -282,6 +303,45 @@ const AppSidebar: React.FC = () => {
                 </div>
               </div>
 
+              {/* Fit Screen View Row: 100% Aligned */}
+              <div className="flex items-center h-10 w-full mb-0.5">
+                <div className="w-[68px] shrink-0 flex items-center justify-center">
+                  <button
+                    onClick={toggleFitScreen}
+                    title={isFitScreen ? "Switch to Contained Width (1280px)" : "Fit Screen Width (Full View)"}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
+                      isFitScreen
+                        ? "text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+                        : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-muted/60"
+                    }`}
+                  >
+                    {isFitScreen ? (
+                      <Minimize2 className="w-[18px] h-[18px]" />
+                    ) : (
+                      <Maximize2 className="w-[18px] h-[18px]" />
+                    )}
+                  </button>
+                </div>
+                <div className="flex-1 min-w-0 flex items-center px-2">
+                  <button
+                    onClick={toggleFitScreen}
+                    className="flex items-center justify-between w-full px-2.5 py-2 rounded-lg text-xs font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted/50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {isFitScreen ? (
+                        <Minimize2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                      ) : (
+                        <Maximize2 className="w-4 h-4 shrink-0 text-sidebar-foreground/50" />
+                      )}
+                      <span className="truncate">Fit Screen View</span>
+                    </div>
+                    <span className={`text-[10px] uppercase font-bold shrink-0 ${isFitScreen ? "text-emerald-400" : "text-sidebar-foreground/40"}`}>
+                      {isFitScreen ? "FIT" : "BOXED"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
               {/* Theme Toggle Row: 100% Aligned */}
               <div className="flex items-center h-10 w-full">
                 <div className="w-[68px] shrink-0 flex items-center justify-center">
@@ -373,13 +433,23 @@ const AppSidebar: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={toggleTheme}
-          className="p-2 rounded-lg border border-sidebar-border/80 bg-sidebar-muted/60 text-sidebar-foreground hover:bg-sidebar-muted transition-colors cursor-pointer"
-          title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
-        >
-          {isLight ? <Moon className="w-4 h-4 text-emerald-400" /> : <Sun className="w-4 h-4 text-amber-400" />}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 rounded-lg border border-sidebar-border/80 bg-sidebar-muted/60 text-sidebar-foreground hover:bg-sidebar-muted transition-colors cursor-pointer"
+            title={isFullscreen ? "Exit Fullscreen" : "Fit Fullscreen"}
+            aria-label="Toggle Fullscreen"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4 text-emerald-400" /> : <Maximize2 className="w-4 h-4 text-sidebar-foreground/70" />}
+          </button>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg border border-sidebar-border/80 bg-sidebar-muted/60 text-sidebar-foreground hover:bg-sidebar-muted transition-colors cursor-pointer"
+            title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
+          >
+            {isLight ? <Moon className="w-4 h-4 text-emerald-400" /> : <Sun className="w-4 h-4 text-amber-400" />}
+          </button>
+        </div>
       </div>
 
       {/* ── Mobile Drawer Overlay ── */}
@@ -484,6 +554,23 @@ const AppSidebar: React.FC = () => {
               <LogOut className="w-4 h-4" />
             </button>
           </div>
+
+          <button
+            onClick={toggleFitScreen}
+            className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-xs font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-muted/50 transition-colors cursor-pointer mb-1"
+          >
+            <div className="flex items-center gap-2.5">
+              {isFitScreen ? (
+                <Minimize2 className="w-4 h-4 text-emerald-400" />
+              ) : (
+                <Maximize2 className="w-4 h-4 text-sidebar-foreground/50" />
+              )}
+              <span>Fit Screen View</span>
+            </div>
+            <span className={`text-[10px] uppercase font-bold ${isFitScreen ? "text-emerald-400" : "text-sidebar-foreground/40"}`}>
+              {isFitScreen ? "FIT" : "BOXED"}
+            </span>
+          </button>
 
           <button
             onClick={toggleTheme}

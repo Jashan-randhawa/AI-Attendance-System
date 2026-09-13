@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/theme/ThemeContext";
 import { AuthProvider } from "@/auth/AuthContext";
+import { ViewModeProvider } from "@/context/ViewModeContext";
 import { ProtectedRoute } from "@/auth/ProtectedRoute";
 import { RoleGuard } from "@/auth/RoleGuard";
 
@@ -34,7 +35,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
-        <TooltipProvider>
+        <ViewModeProvider>
+          <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -142,8 +144,9 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+          </TooltipProvider>
+        </ViewModeProvider>
+      </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

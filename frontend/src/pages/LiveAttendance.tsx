@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, Video, VideoOff, Zap, Users, AlertCircle, CheckCircle2, ShieldCheck, RefreshCw } from "lucide-react";
+import { Camera, Video, VideoOff, Zap, Users, AlertCircle, CheckCircle2, ShieldCheck, RefreshCw, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
 import { attendanceApi, type Session, type IdentifyResult } from "@/services/api";
 import { useSessions, useCreateSession, useEndSession } from "@/hooks/useAttendanceQueries";
+import { useViewMode } from "@/context/ViewModeContext";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -27,6 +28,7 @@ const LiveAttendance: React.FC = () => {
   const { data: sessions, refetch: refetchSessions } = useSessions();
   const createSessionMutation = useCreateSession();
   const endSessionMutation = useEndSession();
+  const { isFullscreen, toggleFullscreen } = useViewMode();
 
   const activeSessions = (sessions || []).filter((s) => s.is_active);
 
@@ -308,34 +310,53 @@ const LiveAttendance: React.FC = () => {
 
   return (
     <AppLayout>
-      <div ref={liveRef} className="space-y-6 max-w-7xl mx-auto">
+      <div ref={liveRef} className="space-y-6 w-full">
         <PageHeader
           className="gsap-live-header"
           badge="Live Biometrics"
           title="Live Attendance Scanner"
           description="Face detection, identification, and automated attendance marking."
           actions={
-            activeSession ? (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={autoScan ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setAutoScan((v) => !v)}
-                  disabled={!isStreaming}
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${autoScan ? "animate-spin" : ""}`} />
-                  {autoScan ? "Auto-Scanning Active" : "Enable Auto-Scan"}
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleEndSession}
-                >
-                  <VideoOff className="w-3.5 h-3.5 mr-1.5" />
-                  End Session
-                </Button>
-              </div>
-            ) : undefined
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? "Exit Fullscreen (Esc / F11)" : "Fit Fullscreen View (F11)"}
+                className="btn-tactile shadow-xs"
+              >
+                {isFullscreen ? (
+                  <>
+                    <Minimize2 className="w-3.5 h-3.5 mr-1.5" /> Normal View
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="w-3.5 h-3.5 mr-1.5" /> Fullscreen View
+                  </>
+                )}
+              </Button>
+              {activeSession && (
+                <>
+                  <Button
+                    variant={autoScan ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setAutoScan((v) => !v)}
+                    disabled={!isStreaming}
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${autoScan ? "animate-spin" : ""}`} />
+                    {autoScan ? "Auto-Scanning Active" : "Enable Auto-Scan"}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleEndSession}
+                  >
+                    <VideoOff className="w-3.5 h-3.5 mr-1.5" />
+                    End Session
+                  </Button>
+                </>
+              )}
+            </div>
           }
         />
 
