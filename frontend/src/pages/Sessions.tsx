@@ -219,55 +219,90 @@ const Sessions: React.FC = () => {
                 No past sessions recorded yet.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableHead className="font-semibold">Session Name</TableHead>
-                      <TableHead className="font-semibold">Department</TableHead>
-                      <TableHead className="font-semibold">Started At</TableHead>
-                      <TableHead className="font-semibold">Ended At</TableHead>
-                      <TableHead className="font-semibold">Status</TableHead>
-                      <TableHead className="text-right font-semibold">Records</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pastSessions.slice(0, 20).map((s) => (
-                      <TableRow key={s.id} className="hover:bg-muted/20">
-                        <TableCell className="font-medium">{s.label}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {s.department || "—"}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {new Date(s.started_at).toLocaleString([], {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          })}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {s.ended_at
-                            ? new Date(s.ended_at).toLocaleString([], {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })
-                            : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
-                            <CheckCircle2 className="w-3 h-3 mr-1 text-muted-foreground" />
-                            Completed
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/records?sessionId=${s.id}`}>View Attendance</Link>
-                          </Button>
-                        </TableCell>
+              <>
+                {/* Mobile Card List (< md) */}
+                <div className="md:hidden divide-y divide-border/60">
+                  {pastSessions.slice(0, 25).map((s) => (
+                    <div key={s.id} className="p-3.5 space-y-2.5 bg-card hover:bg-muted/15 transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-sm text-foreground">{s.label}</p>
+                          {s.department && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <Building className="w-3 h-3" /> {s.department}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground shrink-0">
+                          <CheckCircle2 className="w-3 h-3 mr-1 text-muted-foreground" />
+                          Completed
+                        </Badge>
+                      </div>
+
+                      <div className="text-xs text-muted-foreground flex items-center justify-between pt-1">
+                        <span>
+                          {new Date(s.started_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} •{" "}
+                          {new Date(s.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <Button variant="outline" size="sm" asChild className="h-8 text-xs min-h-[36px] min-w-[44px]">
+                          <Link to={`/records?sessionId=${s.id}`}>View Records</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead className="font-semibold">Session Name</TableHead>
+                        <TableHead className="font-semibold">Department</TableHead>
+                        <TableHead className="font-semibold">Started At</TableHead>
+                        <TableHead className="font-semibold">Ended At</TableHead>
+                        <TableHead className="font-semibold">Status</TableHead>
+                        <TableHead className="text-right font-semibold">Records</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {pastSessions.slice(0, 20).map((s) => (
+                        <TableRow key={s.id} className="hover:bg-muted/20">
+                          <TableCell className="font-medium">{s.label}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {s.department || "—"}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {new Date(s.started_at).toLocaleString([], {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {s.ended_at
+                              ? new Date(s.ended_at).toLocaleString([], {
+                                  dateStyle: "short",
+                                  timeStyle: "short",
+                                })
+                              : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
+                              <CheckCircle2 className="w-3 h-3 mr-1 text-muted-foreground" />
+                              Completed
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link to={`/records?sessionId=${s.id}`}>View Attendance</Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

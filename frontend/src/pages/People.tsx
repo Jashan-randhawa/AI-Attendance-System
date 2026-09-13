@@ -153,99 +153,175 @@ const People: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableHead className="font-semibold">Person</TableHead>
-                      <TableHead className="font-semibold">Department</TableHead>
-                      <TableHead className="font-semibold">Email</TableHead>
-                      <TableHead className="font-semibold">Enrolled On</TableHead>
-                      <TableHead className="font-semibold">Status</TableHead>
-                      <TableHead className="text-right font-semibold">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((p) => (
-                      <TableRow key={p.id} className="hover:bg-muted/20">
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            {p.photo_url ? (
-                              <img
-                                src={p.photo_url}
-                                alt={p.name}
-                                className="w-9 h-9 rounded-full object-cover border border-border/80"
-                              />
-                            ) : (
-                              <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                                {p.name.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                            <div>
-                              <p className="font-medium text-sm leading-none">{p.name}</p>
-                              <p className="text-xs text-muted-foreground font-mono mt-1">
-                                ID: {p.id.slice(0, 8)}...
-                              </p>
+              <>
+                {/* Mobile stacked card view (< md) */}
+                <div className="divide-y divide-border/60 md:hidden">
+                  {filtered.map((p) => (
+                    <div key={p.id} className="p-4 flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          {p.photo_url ? (
+                            <img
+                              src={p.photo_url}
+                              alt={p.name}
+                              className="w-11 h-11 rounded-full object-cover border border-border/80 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                              {p.name.charAt(0).toUpperCase()}
                             </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-base leading-tight truncate">{p.name}</p>
+                            <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                              ID: {p.id.slice(0, 8)}...
+                            </p>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {p.department ? (
-                            <span className="flex items-center gap-1.5">
-                              <Building className="w-3.5 h-3.5 text-muted-foreground" />
-                              {p.department}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground italic text-xs">Unassigned</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {p.email ? (
-                            <span className="flex items-center gap-1.5 text-muted-foreground">
-                              <Mail className="w-3.5 h-3.5" />
-                              {p.email}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground italic text-xs">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(p.enrolled_at).toLocaleDateString(undefined, {
+                        </div>
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs shrink-0">
+                          Active
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground bg-muted/30 p-2.5 rounded-lg border border-border/40">
+                        <div className="flex items-center gap-2">
+                          <Building className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate">{p.department || "Unassigned"}</span>
+                        </div>
+                        {p.email && (
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="truncate">{p.email}</span>
+                          </div>
+                        )}
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          Enrolled: {new Date(p.enrolled_at).toLocaleDateString(undefined, {
                             year: "numeric",
                             month: "short",
                             day: "numeric",
                           })}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
-                            Active
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => navigate(`/people/${p.id}`)}
-                            >
-                              <Eye className="w-4 h-4 mr-1 text-muted-foreground" />
-                              Details
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                              onClick={() => setDeleteTarget(p)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="min-h-[44px] flex-1 text-xs"
+                          onClick={() => navigate(`/people/${p.id}`)}
+                        >
+                          <Eye className="w-4 h-4 mr-1 text-muted-foreground" />
+                          View Profile
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-[44px] px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => setDeleteTarget(p)}
+                          aria-label={`Delete ${p.name}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table view (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead className="font-semibold">Person</TableHead>
+                        <TableHead className="font-semibold">Department</TableHead>
+                        <TableHead className="font-semibold">Email</TableHead>
+                        <TableHead className="font-semibold">Enrolled On</TableHead>
+                        <TableHead className="font-semibold">Status</TableHead>
+                        <TableHead className="text-right font-semibold">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.map((p) => (
+                        <TableRow key={p.id} className="hover:bg-muted/20">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {p.photo_url ? (
+                                <img
+                                  src={p.photo_url}
+                                  alt={p.name}
+                                  className="w-9 h-9 rounded-full object-cover border border-border/80"
+                                />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                                  {p.name.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-medium text-sm leading-none">{p.name}</p>
+                                <p className="text-xs text-muted-foreground font-mono mt-1">
+                                  ID: {p.id.slice(0, 8)}...
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {p.department ? (
+                              <span className="flex items-center gap-1.5">
+                                <Building className="w-3.5 h-3.5 text-muted-foreground" />
+                                {p.department}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground italic text-xs">Unassigned</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {p.email ? (
+                              <span className="flex items-center gap-1.5 text-muted-foreground">
+                                <Mail className="w-3.5 h-3.5" />
+                                {p.email}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground italic text-xs">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(p.enrolled_at).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
+                              Active
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/people/${p.id}`)}
+                              >
+                                <Eye className="w-4 h-4 mr-1 text-muted-foreground" />
+                                Details
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => setDeleteTarget(p)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

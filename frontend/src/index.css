@@ -269,3 +269,22 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Mobile Safe Area & Touch Enhancements */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0.75rem);
+}
+
+.touch-action-manipulation {
+  touch-action: manipulation;
+}
+
+.min-h-touch {
+  min-height: 44px;
+  min-width: 44px;
+}
+

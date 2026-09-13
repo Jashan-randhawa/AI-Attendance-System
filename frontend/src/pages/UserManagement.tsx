@@ -151,60 +151,110 @@ const UserManagement: React.FC = () => {
                 No user accounts registered.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/40 hover:bg-muted/40">
-                      <TableHead>Username</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Account Status</TableHead>
-                      <TableHead>Created Date</TableHead>
-                      <TableHead className="text-right">Access Level</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((u) => (
-                      <TableRow key={u.id} className="hover:bg-muted/20">
-                        <TableCell className="font-semibold text-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
-                              <User className="w-4 h-4" />
-                            </div>
-                            <span>{u.username}</span>
+              <>
+                {/* Mobile stacked card view (< md) */}
+                <div className="divide-y divide-border/60 md:hidden">
+                  {users.map((u) => (
+                    <div key={u.id} className="p-4 flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs shrink-0">
+                            <User className="w-4 h-4" />
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              u.role === "admin"
-                                ? "bg-primary/10 text-primary border-primary/30 font-semibold"
-                                : "bg-muted text-muted-foreground"
-                            }
-                          >
-                            {u.role === "admin" ? "Administrator" : "Operator"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
-                            Active
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(u.created_at).toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </TableCell>
-                        <TableCell className="text-right text-xs text-muted-foreground">
-                          {u.role === "admin" ? "Full Control" : "Session Scanning"}
-                        </TableCell>
+                          <div>
+                            <p className="font-semibold text-sm leading-tight">{u.username}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {new Date(u.created_at).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={
+                            u.role === "admin"
+                              ? "bg-primary/10 text-primary border-primary/30 font-semibold text-xs"
+                              : "bg-muted text-muted-foreground text-xs"
+                          }
+                        >
+                          {u.role === "admin" ? "Administrator" : "Operator"}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg border border-border/40">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-muted-foreground">Access:</span>
+                          <span className="font-medium text-foreground">
+                            {u.role === "admin" ? "Full Control" : "Session Scanning"}
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px]">
+                          Active
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table view (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead>Username</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Account Status</TableHead>
+                        <TableHead>Created Date</TableHead>
+                        <TableHead className="text-right">Access Level</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((u) => (
+                        <TableRow key={u.id} className="hover:bg-muted/20">
+                          <TableCell className="font-semibold text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
+                                <User className="w-4 h-4" />
+                              </div>
+                              <span>{u.username}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={
+                                u.role === "admin"
+                                  ? "bg-primary/10 text-primary border-primary/30 font-semibold"
+                                  : "bg-muted text-muted-foreground"
+                              }
+                            >
+                              {u.role === "admin" ? "Administrator" : "Operator"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
+                              Active
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(u.created_at).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </TableCell>
+                          <TableCell className="text-right text-xs text-muted-foreground">
+                            {u.role === "admin" ? "Full Control" : "Session Scanning"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

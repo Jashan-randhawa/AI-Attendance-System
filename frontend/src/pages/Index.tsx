@@ -79,16 +79,16 @@ const Dashboard: React.FC = () => {
           title="Dashboard Overview"
           description="Live biometric surveillance & attendance operational status"
           actions={
-            <>
-              <Button variant="outline" size="sm" className="btn-tactile bg-card border-border/80 text-foreground shadow-xs" asChild>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="outline" size="sm" className="btn-tactile bg-card border-border/80 text-foreground shadow-xs min-h-[38px]" asChild>
                 <Link to="/reports">View Analytics</Link>
               </Button>
-              <Button size="sm" className="gradient-primary text-white shadow-sm btn-tactile" asChild>
+              <Button size="sm" className="gradient-primary text-white shadow-sm btn-tactile min-h-[38px]" asChild>
                 <Link to="/sessions">
                   <Play className="w-3.5 h-3.5 mr-1.5" /> Start Session
                 </Link>
               </Button>
-            </>
+            </div>
           }
         />
 

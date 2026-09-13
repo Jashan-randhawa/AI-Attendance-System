@@ -130,7 +130,13 @@ const Reports = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                      <XAxis
+                        dataKey="date"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={11}
+                        tickLine={false}
+                        interval={days === 90 ? 6 : days === 30 ? 2 : 0}
+                      />
                       <YAxis domain={[0, 100]} stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
                       <Tooltip
                         contentStyle={{
@@ -172,7 +178,13 @@ const Reports = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                      <XAxis
+                        dataKey="date"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={11}
+                        tickLine={false}
+                        interval={days === 90 ? 6 : days === 30 ? 2 : 0}
+                      />
                       <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
                       <Tooltip
                         contentStyle={{
@@ -183,7 +195,7 @@ const Reports = () => {
                         }}
                       />
                       <Bar dataKey="present" name="Present" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="late" name="Late" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="late" name="Late" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -199,15 +211,17 @@ const Reports = () => {
             <CardTitle className="text-base font-semibold">14-Day Attendance Heatmap</CardTitle>
             <CardDescription>Daily participation intensity per individual</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-6">
             {loadingHeatmap ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Loading heatmap...</p>
             ) : heatmapData && heatmapData.matrix && heatmapData.matrix.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+              <div className="overflow-x-auto border-t sm:border-t-0 border-border">
+                <table className="w-full text-xs min-w-[500px]">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left font-medium py-2 px-3 text-muted-foreground">Person</th>
+                      <th className="sticky left-0 bg-card z-10 text-left font-medium py-2.5 px-3 text-muted-foreground shadow-[1px_0_0_0_hsl(var(--border))]">
+                        Person
+                      </th>
                       {heatmapData.dates.map((d) => (
                         <th key={d} className="text-center font-medium py-2 px-1 text-muted-foreground w-8">
                           {new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday: "narrow" })}
@@ -216,9 +230,11 @@ const Reports = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {heatmapData.matrix.slice(0, 15).map((row) => (
+                    {heatmapData.matrix.slice(0, 20).map((row) => (
                       <tr key={row.person_id} className="border-b border-border/40 hover:bg-muted/30">
-                        <td className="py-2 px-3 font-medium truncate max-w-[150px]">{row.name}</td>
+                        <td className="sticky left-0 bg-card z-10 py-2 px-3 font-medium truncate max-w-[130px] sm:max-w-[170px] shadow-[1px_0_0_0_hsl(var(--border))]">
+                          {row.name}
+                        </td>
                         {heatmapData.dates.map((d) => {
                           const status = row.days[d];
                           const bg =
@@ -227,7 +243,7 @@ const Reports = () => {
                               : status === "late"
                               ? "bg-amber-500 text-white"
                               : status === "absent"
-                              ? "bg-rose-500/40 text-rose-900"
+                              ? "bg-rose-500/40 text-rose-900 dark:text-rose-200"
                               : "bg-muted/60";
                           return (
                             <td key={d} className="p-1 text-center">
@@ -264,57 +280,94 @@ const Reports = () => {
                 placeholder="Search subject or dept..."
                 value={personSearch}
                 onChange={(e) => setPersonSearch(e.target.value)}
-                className="h-9 text-xs"
+                className="h-10 text-xs min-h-[40px]"
               />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-6">
             {loadingPersons ? (
               <p className="text-sm text-muted-foreground py-6 text-center">Loading subject rates...</p>
             ) : filteredPersons.length > 0 ? (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/40">
-                      <TableHead>Subject Name</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead className="text-right">Sessions Attended</TableHead>
-                      <TableHead className="text-right">Total Sessions</TableHead>
-                      <TableHead className="text-right">Attendance Rate</TableHead>
-                      <TableHead className="text-right">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPersons.map((p) => {
-                      const isDefaulter = p.attendance_rate < 75;
-                      return (
-                        <TableRow key={p.person_id}>
-                          <TableCell className="font-semibold text-sm">{p.person_name}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{p.department || "General"}</TableCell>
-                          <TableCell className="text-right text-xs font-mono">{p.attended_sessions}</TableCell>
-                          <TableCell className="text-right text-xs font-mono">{p.total_sessions}</TableCell>
-                          <TableCell className="text-right text-xs font-bold">
-                            <span className={isDefaulter ? "text-rose-600" : "text-emerald-600"}>
-                              {Math.round(p.attendance_rate)}%
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {isDefaulter ? (
-                              <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/30 text-[10px]">
-                                Defaulter
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]">
-                                Good Standing
-                              </Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+              <>
+                {/* Mobile Subject Cards (< md) */}
+                <div className="md:hidden divide-y divide-border/60 border-t border-border">
+                  {filteredPersons.map((p) => {
+                    const isDefaulter = p.attendance_rate < 75;
+                    return (
+                      <div key={p.person_id} className="p-3.5 space-y-1.5 bg-card hover:bg-muted/15 transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-sm text-foreground">{p.person_name}</p>
+                            <p className="text-xs text-muted-foreground">{p.department || "General"}</p>
+                          </div>
+                          {isDefaulter ? (
+                            <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/30 text-[10px]">
+                              Defaulter
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]">
+                              Good Standing
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-border/40">
+                          <span className="text-muted-foreground">
+                            Sessions: <strong className="text-foreground font-mono">{p.attended_sessions}/{p.total_sessions}</strong>
+                          </span>
+                          <span className={`font-bold font-mono ${isDefaulter ? "text-rose-600" : "text-emerald-600"}`}>
+                            {Math.round(p.attendance_rate)}% Rate
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop Table View (>= md) */}
+                <div className="hidden md:block overflow-x-auto rounded-lg border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <TableHead>Subject Name</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead className="text-right">Sessions Attended</TableHead>
+                        <TableHead className="text-right">Total Sessions</TableHead>
+                        <TableHead className="text-right">Attendance Rate</TableHead>
+                        <TableHead className="text-right">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPersons.map((p) => {
+                        const isDefaulter = p.attendance_rate < 75;
+                        return (
+                          <TableRow key={p.person_id}>
+                            <TableCell className="font-semibold text-sm">{p.person_name}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{p.department || "General"}</TableCell>
+                            <TableCell className="text-right text-xs font-mono">{p.attended_sessions}</TableCell>
+                            <TableCell className="text-right text-xs font-mono">{p.total_sessions}</TableCell>
+                            <TableCell className="text-right text-xs font-bold">
+                              <span className={isDefaulter ? "text-rose-600" : "text-emerald-600"}>
+                                {Math.round(p.attendance_rate)}%
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {isDefaulter ? (
+                                <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-500/30 text-[10px]">
+                                  Defaulter
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]">
+                                  Good Standing
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground py-6 text-center">No subjects found matching query.</p>
             )}

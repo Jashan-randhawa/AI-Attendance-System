@@ -413,8 +413,8 @@ const AppSidebar: React.FC = () => {
       </aside>
 
       {/* ── Mobile Topbar (< md) ── */}
-      <div className="md:hidden fixed top-0 inset-x-0 z-40 gradient-sidebar flex items-center justify-between px-4 py-3 border-b border-sidebar-border/80">
-        <div className="flex items-center gap-2.5">
+      <div className="md:hidden fixed top-0 inset-x-0 z-40 gradient-sidebar flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-sidebar-border/80">
+        <div className="flex items-center gap-2">
           <button
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             onClick={() => setMobileOpen((v) => !v)}
@@ -423,20 +423,30 @@ const AppSidebar: React.FC = () => {
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <div className="flex items-center gap-2">
-            <div className="brand-logo-mark w-8 h-8 rounded-lg flex items-center justify-center border border-emerald-500/30 overflow-hidden shadow-xs">
-              <Camera className="w-4 h-4 text-emerald-400 relative z-10" />
+            <div className="brand-logo-mark w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center border border-emerald-500/30 overflow-hidden shadow-xs">
+              <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 relative z-10" />
             </div>
             <span className="text-sm font-bold text-sidebar-foreground flex items-center gap-0.5">
               <span>Smart</span>
               <span className="brand-logo-text-grad">Attend</span>
             </span>
+            <Badge
+              variant="outline"
+              className={`ml-1 text-[9px] px-1.5 py-0 capitalize font-bold ${
+                role === "admin"
+                  ? "border-amber-400/50 text-amber-300 bg-amber-400/10"
+                  : "border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
+              }`}
+            >
+              {role ?? "user"}
+            </Badge>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           <button
             onClick={toggleFullscreen}
-            className="p-2 rounded-lg border border-sidebar-border/80 bg-sidebar-muted/60 text-sidebar-foreground hover:bg-sidebar-muted transition-colors cursor-pointer"
+            className="p-2 rounded-lg border border-sidebar-border/80 bg-sidebar-muted/60 text-sidebar-foreground hover:bg-sidebar-muted transition-colors cursor-pointer min-w-[38px] min-h-[38px] flex items-center justify-center"
             title={isFullscreen ? "Exit Fullscreen" : "Fit Fullscreen"}
             aria-label="Toggle Fullscreen"
           >
@@ -444,8 +454,9 @@ const AppSidebar: React.FC = () => {
           </button>
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg border border-sidebar-border/80 bg-sidebar-muted/60 text-sidebar-foreground hover:bg-sidebar-muted transition-colors cursor-pointer"
+            className="p-2 rounded-lg border border-sidebar-border/80 bg-sidebar-muted/60 text-sidebar-foreground hover:bg-sidebar-muted transition-colors cursor-pointer min-w-[38px] min-h-[38px] flex items-center justify-center"
             title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
+            aria-label="Toggle theme"
           >
             {isLight ? <Moon className="w-4 h-4 text-emerald-400" /> : <Sun className="w-4 h-4 text-amber-400" />}
           </button>
@@ -586,6 +597,88 @@ const AppSidebar: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* ── Mobile Fixed Bottom Tab Bar (< md) ── */}
+      <nav
+        aria-label="Mobile Bottom Navigation"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-sidebar-background/95 backdrop-blur-md border-t border-sidebar-border/80 px-2 py-1.5 pb-safe flex items-center justify-around shadow-2xl"
+      >
+        {/* Live Attendance */}
+        <button
+          type="button"
+          onClick={() => handleNavigate("/live-attendance")}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-colors min-h-[46px] cursor-pointer ${
+            isActive("/live-attendance")
+              ? "text-emerald-400 font-semibold"
+              : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
+          }`}
+        >
+          <div className="relative">
+            <Camera className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1.5 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+          </div>
+          <span className="text-[10px] mt-1 tracking-tight">Live Scan</span>
+        </button>
+
+        {/* Sessions */}
+        <button
+          type="button"
+          onClick={() => handleNavigate("/sessions")}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-colors min-h-[46px] cursor-pointer ${
+            isActive("/sessions")
+              ? "text-emerald-400 font-semibold"
+              : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
+          }`}
+        >
+          <Calendar className="w-5 h-5" />
+          <span className="text-[10px] mt-1 tracking-tight">Sessions</span>
+        </button>
+
+        {/* Records */}
+        <button
+          type="button"
+          onClick={() => handleNavigate("/records")}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-colors min-h-[46px] cursor-pointer ${
+            isActive("/records")
+              ? "text-emerald-400 font-semibold"
+              : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
+          }`}
+        >
+          <ClipboardList className="w-5 h-5" />
+          <span className="text-[10px] mt-1 tracking-tight">Records</span>
+        </button>
+
+        {/* Dashboard */}
+        <button
+          type="button"
+          onClick={() => handleNavigate("/")}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-colors min-h-[46px] cursor-pointer ${
+            isActive("/")
+              ? "text-emerald-400 font-semibold"
+              : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
+          }`}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          <span className="text-[10px] mt-1 tracking-tight">Dashboard</span>
+        </button>
+
+        {/* More / Menu Drawer */}
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-colors min-h-[46px] cursor-pointer ${
+            mobileOpen
+              ? "text-emerald-400 font-semibold"
+              : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
+          }`}
+        >
+          <Menu className="w-5 h-5" />
+          <span className="text-[10px] mt-1 tracking-tight">More</span>
+        </button>
+      </nav>
     </>
   );
 };

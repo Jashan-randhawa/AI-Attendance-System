@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Camera, Upload, UserPlus, CheckCircle, RefreshCw, Trash2, Video, VideoOff,
-  AlertCircle, CheckCircle2, Loader2, ScanFace,
+  AlertCircle, CheckCircle2, Loader2, ScanFace, SwitchCamera,
 } from "lucide-react";
 import { toast } from "sonner";
 import { personsApi, type Person } from "@/services/api";
@@ -39,6 +39,7 @@ const EnrollPerson = () => {
 
   // Camera state
   const [isStreaming, setIsStreaming] = useState(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const [capturedImages, setCapturedImages] = useState<Blob[]>([]);
   const [capturedPreviews, setCapturedPreviews] = useState<string[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -57,18 +58,26 @@ const EnrollPerson = () => {
   const [loading, setLoading] = useState(false);
 
   // ── Camera helpers ─────────────────────────────────────────────────────────
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(async (targetMode?: "user" | "environment") => {
+    const modeToUse = targetMode || facingMode;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: modeToUse }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+      }
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
       setIsStreaming(true);
     } catch {
       toast.error("Camera access denied. Please allow camera permissions.");
     }
-  }, []);
+  }, [facingMode]);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -76,6 +85,16 @@ const EnrollPerson = () => {
     if (videoRef.current) videoRef.current.srcObject = null;
     setIsStreaming(false);
   }, []);
+
+  const switchCamera = useCallback(async () => {
+    const nextMode = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(nextMode);
+    toast.info(`Switched to ${nextMode === "environment" ? "Rear" : "Front"} Camera`);
+    if (isStreaming) {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      await startCamera(nextMode);
+    }
+  }, [facingMode, isStreaming, startCamera]);
 
   useEffect(() => {
     return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); };
@@ -276,7 +295,7 @@ const EnrollPerson = () => {
                     Capture 3–5 photos from different angles for best accuracy.
                   </p>
 
-                  <div className="relative aspect-video bg-foreground/5 rounded-lg overflow-hidden flex items-center justify-center">
+                  <div className="relative aspect-video bg-foreground/5 rounded-lg overflow-hidden flex items-center justify-center touch-action-manipulation">
                     <video
                       ref={videoRef}
                       autoPlay
@@ -286,10 +305,22 @@ const EnrollPerson = () => {
                     />
                     <canvas ref={canvasRef} className="hidden" />
                     {isStreaming && (
-                      <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                      <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full z-10">
                         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                         <span className="text-xs text-white font-medium">LIVE</span>
                       </div>
+                    )}
+                    {isStreaming && (
+                      <button
+                        type="button"
+                        onClick={switchCamera}
+                        title={`Switch to ${facingMode === "environment" ? "Front" : "Rear"} Camera`}
+                        aria-label="Switch Camera"
+                        className="absolute top-3 right-3 flex items-center gap-1 bg-black/60 hover:bg-black/80 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-white/10 text-white text-xs font-medium cursor-pointer transition-colors shadow-sm z-10 min-h-[34px]"
+                      >
+                        <SwitchCamera className="w-3.5 h-3.5" />
+                        <span className="capitalize">{facingMode}</span>
+                      </button>
                     )}
                     {!isStreaming && (
                       <div className="text-center space-y-2">
@@ -299,32 +330,33 @@ const EnrollPerson = () => {
                     )}
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
                     <Button type="button" variant="outline"
-                      onClick={isStreaming ? stopCamera : startCamera}
-                      className={isStreaming ? "text-destructive border-destructive" : ""}>
+                      onClick={isStreaming ? stopCamera : () => startCamera()}
+                      className={`min-h-[44px] flex-1 ${isStreaming ? "text-destructive border-destructive" : ""}`}>
                       {isStreaming
                         ? <><VideoOff className="w-4 h-4 mr-2" /> Stop Camera</>
                         : <><Video className="w-4 h-4 mr-2" /> Start Camera</>}
                     </Button>
                     {isStreaming && (
                       <Button type="button" onClick={capturePhoto}
-                        disabled={capturedImages.length >= 5}>
-                        <Camera className="w-4 h-4 mr-2" /> Capture Photo
+                        disabled={capturedImages.length >= 5}
+                        className="min-h-[44px] flex-1 gradient-primary text-white shadow-sm">
+                        <Camera className="w-4 h-4 mr-2" /> Capture Photo ({capturedImages.length}/5)
                       </Button>
                     )}
                   </div>
 
                   {capturedPreviews.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 pt-2">
                       <p className="text-sm font-medium">{capturedPreviews.length} photo(s) captured:</p>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5 sm:gap-3">
                         {capturedPreviews.map((src, i) => {
                           const quality = analysisReport?.results[i];
                           return (
-                            <div key={i} className="relative group">
+                            <div key={i} className="relative group aspect-square">
                               <img src={src} alt={`Capture ${i + 1}`}
-                                className={`w-20 h-20 object-cover rounded-lg border-2 ${
+                                className={`w-full h-full object-cover rounded-xl border-2 ${
                                   quality
                                     ? quality.ok
                                       ? "border-green-500"
@@ -332,19 +364,20 @@ const EnrollPerson = () => {
                                     : "border-border"
                                 }`} />
                               {quality && (
-                                <div className="absolute top-1 right-1">
+                                <div className="absolute top-1 right-1 z-10">
                                   {quality.ok
-                                    ? <CheckCircle2 className="w-4 h-4 text-green-500 bg-white rounded-full" />
-                                    : <AlertCircle className="w-4 h-4 text-red-500 bg-white rounded-full" />}
+                                    ? <CheckCircle2 className="w-4 h-4 text-green-500 bg-white rounded-full shadow-xs" />
+                                    : <AlertCircle className="w-4 h-4 text-red-500 bg-white rounded-full shadow-xs" />}
                                 </div>
                               )}
                               <button type="button"
                                 onClick={() => removeCapture(i)}
-                                className="absolute -top-2 -right-2 bg-destructive text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Trash2 className="w-3 h-3" />
+                                aria-label={`Remove photo ${i + 1}`}
+                                className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md opacity-90 hover:opacity-100 transition-opacity cursor-pointer z-20">
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
-                              <span className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1 rounded">
-                                {i + 1}
+                              <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                #{i + 1}
                               </span>
                             </div>
                           );
