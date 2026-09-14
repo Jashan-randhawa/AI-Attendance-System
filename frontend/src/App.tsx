@@ -9,6 +9,7 @@ import { ViewModeProvider } from "@/context/ViewModeContext";
 import { ProtectedRoute } from "@/auth/ProtectedRoute";
 import { RoleGuard } from "@/auth/RoleGuard";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import Login from "./pages/Login.tsx";
 import Index from "./pages/Index.tsx";
@@ -41,6 +42,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Analytics />
+          <SpeedInsights />
           <BrowserRouter>
           <Routes>
             {/* Public route */}
