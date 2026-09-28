@@ -1,0 +1,52 @@
+{
+  "name": "@jashan-randhawa/face-matching-core",
+  "version": "1.0.0",
+  "description": "Provider-neutral face embedding normalization, cosine similarity calculation, and top-K candidate matching engine.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jashan-randhawa/AI-Attendance-System.git",
+    "directory": "packages/face-matching-core"
+  },
+  "keywords": [
+    "face-recognition",
+    "embeddings",
+    "cosine-similarity",
+    "biometrics",
+    "vector-search",
+    "insightface"
+  ],
+  "author": "Jashan Randhawa",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Jashan-randhawa/AI-Attendance-System/issues"
+  },
+  "homepage": "https://github.com/Jashan-randhawa/AI-Attendance-System/tree/main/packages/face-matching-core#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.js"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "@jashan-randhawa/attendance-domain-core",
+  "version": "1.0.0",
+  "description": "Database-neutral attendance marking idempotency rules, session status validation, and duplicate event classification.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jashan-randhawa/AI-Attendance-System.git",
+    "directory": "packages/attendance-domain-core"
+  },
+  "keywords": [
+    "attendance",
+    "idempotency",
+    "domain-logic",
+    "duplicate-prevention",
+    "attendance-rules"
+  ],
+  "author": "Jashan Randhawa",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Jashan-randhawa/AI-Attendance-System/issues"
+  },
+  "homepage": "https://github.com/Jashan-randhawa/AI-Attendance-System/tree/main/packages/attendance-domain-core#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.js"
+  }
+}

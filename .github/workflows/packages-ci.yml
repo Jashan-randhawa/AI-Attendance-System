@@ -1,0 +1,55 @@
+name: Packages CI - Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Monorepo Dependencies
+        run: |
+          npm install
+          npx --yes typescript --version
+
+      - name: Typecheck & Build Packages
+        run: |
+          for pkg in packages/*; do
+            if [ -f "$pkg/tsconfig.json" ]; then
+              echo "Building $pkg..."
+              npx typescript -p "$pkg/tsconfig.json"
+            fi
+          done
+
+      - name: Run Unit Tests
+        run: |
+          echo "Testing face-matching-core..."
+          (cd packages/face-matching-core && npm test)
+          echo "Testing attendance-contracts..."
+          (cd packages/attendance-contracts && npm test)
+          echo "Testing smartattend-client..."
+          (cd packages/smartattend-client && npm test)
+          echo "Testing face-quality-gates..."
+          (cd packages/face-quality-gates && npm test)
+          echo "Testing attendance-domain-core..."
+          (cd packages/attendance-domain-core && npm test)
+
+      - name: Tarball Packaging Smoke Test
+        run: |
+          for pkg in packages/*; do
+            if [ -f "$pkg/package.json" ]; then
+              echo "Packing $pkg..."
+              (cd "$pkg" && npm pack --dry-run)
+            fi
+          done

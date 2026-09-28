@@ -59,6 +59,21 @@ High-throughput, privacy-focused facial recognition attendance system featuring 
 
 ---
 
+## 📦 Modular Reusable Packages
+
+This monorepo publishes decoupled open-source packages extracted from SmartAttend:
+
+| Package | Ecosystem | Description | Documentation |
+| :--- | :---: | :--- | :--- |
+| [`@jashan-randhawa/face-matching-core`](https://github.com/Jashan-randhawa/AI-Attendance-System/tree/main/packages/face-matching-core) | npm | Provider-neutral vector normalization, cosine similarity, and top-K candidate matching | [README](./packages/face-matching-core/README.md) |
+| [`@jashan-randhawa/attendance-contracts`](https://github.com/Jashan-randhawa/AI-Attendance-System/tree/main/packages/attendance-contracts) | npm | Shared TypeScript domain entity types and API request/response contracts | [README](./packages/attendance-contracts/README.md) |
+| [`@jashan-randhawa/smartattend-client`](https://github.com/Jashan-randhawa/AI-Attendance-System/tree/main/packages/smartattend-client) | npm | Typed HTTP client SDK for browser, Node.js, and mobile clients | [README](./packages/smartattend-client/README.md) |
+| [`@jashan-randhawa/face-quality-gates`](https://github.com/Jashan-randhawa/AI-Attendance-System/tree/main/packages/face-quality-gates) | npm | Biometric face image quality rules, pose limits, edge margins, and diagnostics | [README](./packages/face-quality-gates/README.md) |
+| [`@jashan-randhawa/attendance-domain-core`](https://github.com/Jashan-randhawa/AI-Attendance-System/tree/main/packages/attendance-domain-core) | npm | Database-neutral attendance marking idempotency rules and duplicate classification | [README](./packages/attendance-domain-core/README.md) |
+| [`smartattend-face-matching`](https://github.com/Jashan-randhawa/AI-Attendance-System/tree/main/packages/python/face-matching-core) | Python / PyPI | Pure Python & NumPy vector normalization, cosine similarity, and candidate ranking | [README](./packages/python/face-matching-core/README.md) |
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid

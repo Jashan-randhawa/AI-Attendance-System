@@ -1,0 +1,52 @@
+{
+  "name": "@jashan-randhawa/smartattend-client",
+  "version": "1.0.0",
+  "description": "Production-ready typed client SDK for the Smart Attendance FastAPI backend, supporting Node.js, browsers, and mobile runtimes.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jashan-randhawa/AI-Attendance-System.git",
+    "directory": "packages/smartattend-client"
+  },
+  "keywords": [
+    "smartattend",
+    "attendance-sdk",
+    "api-client",
+    "biometrics",
+    "typescript-sdk",
+    "fastapi-client"
+  ],
+  "author": "Jashan Randhawa",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Jashan-randhawa/AI-Attendance-System/issues"
+  },
+  "homepage": "https://github.com/Jashan-randhawa/AI-Attendance-System/tree/main/packages/smartattend-client#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.js"
+  }
+}

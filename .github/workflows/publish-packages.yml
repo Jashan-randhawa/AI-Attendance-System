@@ -1,0 +1,56 @@
+name: Publish Packages to GitHub Packages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js with GitHub Packages Registry
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@jashan-randhawa'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+
+      - name: Build All Packages
+        run: |
+          for pkg in packages/*; do
+            if [ -f "$pkg/tsconfig.json" ]; then
+              echo "Building $pkg..."
+              npx --yes typescript -p "$pkg/tsconfig.json"
+            fi
+          done
+
+      - name: Run Tests Before Publication
+        run: |
+          (cd packages/face-matching-core && npm test)
+          (cd packages/attendance-contracts && npm test)
+          (cd packages/smartattend-client && npm test)
+          (cd packages/face-quality-gates && npm test)
+          (cd packages/attendance-domain-core && npm test)
+
+      - name: Publish Packages to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for pkg in packages/*; do
+            if [ -f "$pkg/package.json" ]; then
+              echo "Publishing $pkg to GitHub Packages..."
+              (cd "$pkg" && npm publish --access public || echo "Skipped or already published: $pkg")
+            fi
+          done

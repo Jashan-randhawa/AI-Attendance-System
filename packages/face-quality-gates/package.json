@@ -1,0 +1,51 @@
+{
+  "name": "@jashan-randhawa/face-quality-gates",
+  "version": "1.0.0",
+  "description": "Biometric face image quality evaluation rules, pose limits, edge margin checks, and quality gate diagnostics.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jashan-randhawa/AI-Attendance-System.git",
+    "directory": "packages/face-quality-gates"
+  },
+  "keywords": [
+    "face-quality",
+    "biometrics",
+    "quality-gates",
+    "pose-detection",
+    "face-validation"
+  ],
+  "author": "Jashan Randhawa",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Jashan-randhawa/AI-Attendance-System/issues"
+  },
+  "homepage": "https://github.com/Jashan-randhawa/AI-Attendance-System/tree/main/packages/face-quality-gates#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.js"
+  }
+}

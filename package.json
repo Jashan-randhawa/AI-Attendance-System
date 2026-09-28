@@ -1,0 +1,21 @@
+{
+  "name": "ai-attendance-system-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SmartAttend Biometric Attendance System Monorepo and Modular Packages",
+  "author": "Jashan Randhawa",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jashan-randhawa/AI-Attendance-System.git"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}
