@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@jashan-randhawa/attendance-contracts": path.resolve(__dirname, "../packages/attendance-contracts/src/index.ts"),
+      "@jashan-randhawa/attendance-domain-core": path.resolve(__dirname, "../packages/attendance-domain-core/src/index.ts"),
+      "@jashan-randhawa/face-matching-core": path.resolve(__dirname, "../packages/face-matching-core/src/index.ts"),
+      "@jashan-randhawa/face-quality-gates": path.resolve(__dirname, "../packages/face-quality-gates/src/index.ts"),
+      "@jashan-randhawa/smartattend-client": path.resolve(__dirname, "../packages/smartattend-client/src/index.ts"),
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },

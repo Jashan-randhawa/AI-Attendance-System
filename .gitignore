@@ -3,7 +3,7 @@ node_modules/
 frontend/node_modules/
 
 # Production build artifacts
-dist/
+/dist/
 frontend/dist/
 build/
 

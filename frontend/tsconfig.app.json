@@ -19,6 +19,21 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@jashan-randhawa/attendance-contracts": [
+        "../packages/attendance-contracts/src/index.ts"
+      ],
+      "@jashan-randhawa/attendance-domain-core": [
+        "../packages/attendance-domain-core/src/index.ts"
+      ],
+      "@jashan-randhawa/face-matching-core": [
+        "../packages/face-matching-core/src/index.ts"
+      ],
+      "@jashan-randhawa/face-quality-gates": [
+        "../packages/face-quality-gates/src/index.ts"
+      ],
+      "@jashan-randhawa/smartattend-client": [
+        "../packages/smartattend-client/src/index.ts"
       ]
     },
     "skipLibCheck": true,
