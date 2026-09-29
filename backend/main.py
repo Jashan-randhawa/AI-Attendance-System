@@ -33,7 +33,7 @@ Phase 3 hardening:
 import os
 import logging
 import asyncio
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -164,3 +164,10 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health():
     return {"status": "healthy"}
+
+
+@app.get("/metrics", tags=["Observability"])
+async def metrics():
+    from core.metrics import get_prometheus_metrics
+    payload, media_type = get_prometheus_metrics()
+    return Response(content=payload, media_type=media_type)

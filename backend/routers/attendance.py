@@ -26,6 +26,7 @@ from core.auth import require_operator, require_admin, get_user_id_from_request
 from core.rate_limit import limiter
 from core.validation import read_and_validate_image
 from core.audit import record_audit_event
+from core.metrics import record_attendance_mark
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -106,6 +107,7 @@ async def mark_attendance(
                     att_doc["marked_by"] = user_id
                 await db.attendance.insert_one(att_doc)
                 new_records += 1
+                record_attendance_mark("new")
                 await record_audit_event(
                     action="MARK_ATTENDANCE",
                     actor_id=user_id or "operator",
@@ -115,10 +117,13 @@ async def mark_attendance(
                     metadata={"session_id": session_id, "confidence": r["confidence"]},
                 )
             except DuplicateKeyError:
+                record_attendance_mark("duplicate")
                 logger.info(
                     "Duplicate attendance mark ignored for person=%s session=%s",
                     person["_id"], session_id,
                 )
+        else:
+            record_attendance_mark("duplicate")
 
         identified.append(IdentifyResult(
             azure_person_id=r["azure_person_id"],
