@@ -17,6 +17,8 @@ import { useSessions, useCreateSession, useEndSession } from "@/hooks/useAttenda
 import { useViewMode } from "@/context/ViewModeContext";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import LaserScannerOverlay from "@/components/camera/LaserScannerOverlay";
+import RecognitionCardList from "@/components/camera/RecognitionCardList";
 
 gsap.registerPlugin(useGSAP);
 
@@ -555,9 +557,7 @@ const LiveAttendance: React.FC = () => {
                   </button>
                 )}
 
-                {isStreaming && (scanning || autoScan) && (
-                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_#22d3ee] scanner-laser-beam pointer-events-none z-10" />
-                )}
+                <LaserScannerOverlay scanning={isStreaming && (scanning || autoScan)} />
 
                 {!isStreaming && (
                   <div className="text-center space-y-2.5 sm:space-y-3 p-6">
@@ -626,33 +626,11 @@ const LiveAttendance: React.FC = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-3 flex-1 overflow-y-auto space-y-2">
-              {recognized.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground space-y-2">
-                  <ShieldCheck className="w-8 h-8 text-muted-foreground/40" />
-                  <p className="text-xs">No attendees identified yet</p>
-                  <p className="text-[11px] text-muted-foreground/70">
-                    Position face in front of the camera and click "Identify / Mark Attendance" or enable "Auto-Scan".
-                  </p>
-                </div>
-              ) : (
-                recognized.map((p) => (
-                  <div
-                    key={p.azure_person_id}
-                    className="animate-enter-subtle flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted/70 transition-colors"
-                  >
-                    <div className="min-w-0 pr-2">
-                      <p className="text-sm font-semibold truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.time}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[11px]">
-                        {(p.confidence * 100).toFixed(0)}% Match
-                      </Badge>
-                    </div>
-                  </div>
-                ))
-              )}
+            <CardContent className="p-3 flex-1 overflow-y-auto">
+              <RecognitionCardList
+                items={recognized}
+                emptyMessage="No attendees identified yet. Position face in front of the camera and click 'Identify / Mark Attendance' or enable 'Auto-Scan'."
+              />
             </CardContent>
           </Card>
         </div>

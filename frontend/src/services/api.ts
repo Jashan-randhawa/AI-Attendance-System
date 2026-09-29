@@ -4,13 +4,26 @@
  * All components should import from here — never use fetch() directly.
  */
 
+import { SmartAttendClient } from "@jashan-randhawa/smartattend-client";
+export { SmartAttendClient } from "@jashan-randhawa/smartattend-client";
+export type * from "@jashan-randhawa/attendance-contracts";
+
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+// Singleton typed SDK client instance
+export const smartAttendClient = new SmartAttendClient({
+  baseUrl: BASE_URL,
+});
 
 // Token storage: keep in-memory with sessionStorage fallback for page refresh resilience
 let authToken: string | null = (typeof window !== "undefined" && window.sessionStorage?.getItem("auth_token")) || null;
+if (authToken) {
+  smartAttendClient.setToken(authToken);
+}
 
 export function setAuthToken(token: string | null) {
   authToken = token;
+  smartAttendClient.setToken(token);
   if (typeof window !== "undefined") {
     if (token) {
       window.sessionStorage.setItem("auth_token", token);

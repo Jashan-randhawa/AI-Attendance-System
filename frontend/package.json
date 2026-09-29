@@ -15,6 +15,11 @@
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^3.10.0",
+    "@jashan-randhawa/attendance-contracts": "file:../packages/attendance-contracts",
+    "@jashan-randhawa/attendance-domain-core": "file:../packages/attendance-domain-core",
+    "@jashan-randhawa/face-matching-core": "file:../packages/face-matching-core",
+    "@jashan-randhawa/face-quality-gates": "file:../packages/face-quality-gates",
+    "@jashan-randhawa/smartattend-client": "file:../packages/smartattend-client",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",

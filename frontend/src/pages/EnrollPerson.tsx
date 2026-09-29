@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { personsApi, type Person } from "@/services/api";
+import { DEFAULT_QUALITY_THRESHOLDS } from "@jashan-randhawa/face-quality-gates";
 
 type CaptureMode = "camera" | "upload";
 
@@ -287,6 +288,16 @@ const EnrollPerson = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg bg-muted/40 border border-border/60 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground flex items-center gap-1">
+                  <ScanFace className="w-3.5 h-3.5 text-primary" /> Quality Gates:
+                </span>
+                <span>Min resolution: {DEFAULT_QUALITY_THRESHOLDS.minFaceWidth}×{DEFAULT_QUALITY_THRESHOLDS.minFaceHeight}px</span>
+                <span>•</span>
+                <span>Min confidence: {Math.round(DEFAULT_QUALITY_THRESHOLDS.minScore * 100)}%</span>
+                <span>•</span>
+                <span>Max faces: {DEFAULT_QUALITY_THRESHOLDS.maxFacesAllowed}</span>
+              </div>
 
               {/* ── Camera Mode ── */}
               {mode === "camera" && (
