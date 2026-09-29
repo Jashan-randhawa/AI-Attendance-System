@@ -11,16 +11,21 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo.errors import DuplicateKeyError
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Query, status
+import base64
+from fastapi import (
+    APIRouter, Depends, HTTPException, Request, UploadFile, File, Query, status,
+    WebSocket, WebSocketDisconnect,
+)
 from fastapi.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from core.database import get_db, person_already_marked, get_person_by_azure_id
+from core.database import get_db, get_database, person_already_marked, get_person_by_azure_id
 from core.schemas import AttendanceOut, MarkAttendanceResponse, IdentifyResult
 from core import azure_face
 from core.auth import require_operator, require_admin, get_user_id_from_request
 from core.rate_limit import limiter
 from core.validation import read_and_validate_image
+from core.audit import record_audit_event
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -101,6 +106,14 @@ async def mark_attendance(
                     att_doc["marked_by"] = user_id
                 await db.attendance.insert_one(att_doc)
                 new_records += 1
+                await record_audit_event(
+                    action="MARK_ATTENDANCE",
+                    actor_id=user_id or "operator",
+                    actor_role="operator",
+                    ip_address=request.client.host if request.client else "unknown",
+                    target_id=str(person["_id"]),
+                    metadata={"session_id": session_id, "confidence": r["confidence"]},
+                )
             except DuplicateKeyError:
                 logger.info(
                     "Duplicate attendance mark ignored for person=%s session=%s",
@@ -209,3 +222,61 @@ async def export_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+# ── Real-Time Streaming WebSocket ─────────────────────────────────────────────
+
+@router.websocket("/ws/{session_id}")
+async def attendance_websocket(
+    websocket: WebSocket,
+    session_id: str,
+):
+    """
+    Real-time persistent bi-directional streaming endpoint for camera feeds.
+    Accepts raw binary JPEG/WebP frames or base64 data URLs.
+    Returns recognition bounding boxes and match status without HTTP overhead.
+    """
+    await websocket.accept()
+    db = get_database()
+    try:
+        session_oid = ObjectId(session_id)
+        session = await db.sessions.find_one({"_id": session_oid, "is_active": True})
+        if not session:
+            await websocket.send_json({"error": "Active session not found", "status": 404})
+            await websocket.close()
+            return
+    except Exception:
+        await websocket.send_json({"error": "Invalid session identifier", "status": 400})
+        await websocket.close()
+        return
+
+    try:
+        while True:
+            data = await websocket.receive()
+            image_bytes = None
+            if "bytes" in data and data["bytes"]:
+                image_bytes = data["bytes"]
+            elif "text" in data and data["text"]:
+                raw_text = data["text"].strip()
+                if "," in raw_text:
+                    raw_text = raw_text.split(",", 1)[1]
+                image_bytes = base64.b64decode(raw_text)
+
+            if not image_bytes:
+                continue
+
+            results = await azure_face.identify_faces(image_bytes)
+            await websocket.send_json({
+                "timestamp": datetime.now(UTC).isoformat(),
+                "session_id": session_id,
+                "matches": results,
+                "faces_detected": len(results),
+            })
+    except WebSocketDisconnect:
+        logger.info("Live WebSocket stream disconnected for session %s", session_id)
+    except Exception as e:
+        logger.warning("WebSocket live stream exception: %s", e)
+        try:
+            await websocket.close()
+        except Exception:
+            pass
